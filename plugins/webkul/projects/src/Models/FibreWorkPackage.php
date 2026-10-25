@@ -5,6 +5,7 @@ namespace Webkul\Project\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 use Webkul\Partner\Models\Partner;
 use Webkul\Support\Traits\BelongsToCompany;
 
@@ -37,6 +38,25 @@ class FibreWorkPackage extends Model
         static::saving(function (self $package): void {
             if ($package->project_id) {
                 $package->company_id = $package->project?->company_id;
+            }
+
+            $section = $package->routeSection;
+
+            if ($section && $package->project_id && $section->project_id !== $package->project_id) {
+                throw ValidationException::withMessages([
+                    'route_section_id' => 'The route section must belong to the selected project.',
+                ]);
+            }
+
+            if (
+                $section
+                && $package->start_chainage_m !== null
+                && $package->end_chainage_m !== null
+                && (float) $package->end_chainage_m <= (float) $package->start_chainage_m
+            ) {
+                throw ValidationException::withMessages([
+                    'end_chainage_m' => 'End chainage must be greater than start chainage.',
+                ]);
             }
         });
     }
