@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('end_chainage_m', 14, 3)->nullable();
             $table->decimal('reported_quantity', 14, 3);
             $table->string('status')->default('draft');
-            $table->json('evidence_paths');
+            $table->json('evidence_paths')->nullable();
             $table->text('photo_exception_reason')->nullable();
             $table->text('work_notes')->nullable();
             $table->timestamp('submitted_at')->nullable();
