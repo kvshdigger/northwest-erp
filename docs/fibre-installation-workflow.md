@@ -41,3 +41,16 @@ The Projects plugin now includes Filament management screens for Fibre BOQ, Fibr
 - Subcontractor portal permissions must be enforced server-side, not only by hiding UI elements.
 - Daily progress, PIC responses, inspection decisions, and approval history require dedicated records and automated tests in the next stage.
 - Before deployment, run the project's migration and test suites against a disposable development database. Do not run migrations on production data without a backup and explicit approval.
+
+
+## Stage 2 — Daily progress capture
+
+The development branch now includes a daily progress record and Filament entry screen. Each entry ties together the project, route section, assigned work package, allocated BOQ item/activity, work date, optional chainage range, reported quantity, notes, and private photo evidence.
+
+- Photo evidence is required when an entry is submitted; draft records can be saved while being prepared.
+- Submitted records are locked against editing in the model to preserve the original report. The table also hides edit/delete actions after submission.
+- The entry is only a reported quantity. It is not yet PIC-confirmed, inspected, approved, claimable, or paid.
+- The current screen does not provide PIC confirmation/dispute, inspection, final PM/IM approval, or approved exceptions to photo evidence. Those are separate workflow steps and must not be inferred from a submitted status.
+- Evidence files use the private local disk. Production use requires confirming storage persistence, backups, and authorized retrieval before any subcontractor portal is enabled.
+
+Stage 2 remains untested in a running Laravel/Filament environment. Run the migrations and UI tests against a disposable development database before merging.
