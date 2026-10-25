@@ -43,6 +43,11 @@ class FibreDailyProgress extends Model
         });
 
         static::saving(function (self $progress): void {
+            if ($progress->exists && $progress->getOriginal('status') === 'submitted' && $progress->isDirty()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Submitted progress entries are locked. Use the PIC confirmation and correction workflow rather than overwriting the original report.',
+                ]);
+            }
             $package = $progress->workPackage;
             $packageItem = $progress->workPackageItem;
             $section = $progress->routeSection;
@@ -87,11 +92,9 @@ class FibreDailyProgress extends Model
                 ]);
             }
 
-            if ($progress->status === 'submitted'
-                && empty($progress->evidence_paths)
-                && blank($progress->photo_exception_reason)) {
+            if ($progress->status === 'submitted' && empty($progress->evidence_paths)) {
                 throw ValidationException::withMessages([
-                    'evidence_paths' => 'Photo evidence is required before submission unless an approved exception is documented.',
+                    'evidence_paths' => 'Photo evidence is required before submission.',
                 ]);
             }
         });
