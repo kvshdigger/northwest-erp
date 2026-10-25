@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Webkul\Partner\Models\Partner;
+use Webkul\Support\Traits\BelongsToCompany;
 
 class FibreWorkPackage extends Model
 {
+    use BelongsToCompany;
+
     protected $table = 'projects_fibre_work_packages';
 
     protected $fillable = [
@@ -23,6 +26,20 @@ class FibreWorkPackage extends Model
         'planned_start_date' => 'date',
         'planned_end_date' => 'date',
     ];
+
+    public static function autoAssignsCompany(): bool
+    {
+        return false;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $package): void {
+            if ($package->project_id) {
+                $package->company_id = $package->project?->company_id;
+            }
+        });
+    }
 
     public function project(): BelongsTo
     {
