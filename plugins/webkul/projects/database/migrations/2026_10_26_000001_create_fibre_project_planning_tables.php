@@ -62,6 +62,7 @@ return new class extends Migration
         Schema::create('projects_fibre_work_package_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('work_package_id')->constrained('projects_fibre_work_packages')->cascadeOnDelete();
+            $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
             $table->foreignId('boq_item_id')->constrained('projects_fibre_boq_items')->restrictOnDelete();
             $table->decimal('allocated_quantity', 14, 3)->default(0);
             $table->decimal('subcontractor_rate', 14, 2)->default(0);
