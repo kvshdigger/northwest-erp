@@ -6,13 +6,17 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Webkul\Project\Filament\Resources\FibreWorkPackageResource\Pages\CreateFibreWorkPackage;
 use Webkul\Project\Filament\Resources\FibreWorkPackageResource\Pages\EditFibreWorkPackage;
 use Webkul\Project\Filament\Resources\FibreWorkPackageResource\Pages\ListFibreWorkPackages;
+use Webkul\Project\Filament\Resources\FibreWorkPackageResource\RelationManagers\ItemsRelationManager;
 use Webkul\Project\Models\FibreWorkPackage;
 use Webkul\Support\Enums\NavigationGroup;
 
@@ -35,10 +39,18 @@ class FibreWorkPackageResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('project_id')->relationship('project', 'name')->searchable()->preload()->required()->live(),
+            Select::make('project_id')->relationship('project', 'name')->searchable()->preload()->required()->live()
+                ->afterStateUpdated(fn (Set $set) => $set('route_section_id', null)),
             Select::make('route_section_id')
                 ->label('Route section')
-                ->relationship('routeSection', 'name')
+                ->relationship(
+                    'routeSection',
+                    'name',
+                    modifyQueryUsing: fn (Builder $query, Get $get) => $query->when(
+                        $get('project_id'),
+                        fn (Builder $query, $projectId) => $query->where('project_id', $projectId),
+                    ),
+                )
                 ->searchable()->preload()->required(),
             Select::make('subcontractor_id')
                 ->label('Subcontractor')
@@ -78,6 +90,11 @@ class FibreWorkPackageResource extends Resource
             \Filament\Actions\EditAction::make(),
             \Filament\Actions\DeleteAction::make(),
         ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [ItemsRelationManager::class];
     }
 
     public static function getPages(): array
