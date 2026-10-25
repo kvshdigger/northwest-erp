@@ -22,6 +22,10 @@ The existing projects table remains the project parent. The following tables ext
 
 A work package can contain multiple BOQ items, and a route section can have multiple work packages. This keeps the client contract rate separate from each subcontractor's agreed rate.
 
+### Stage 1 management screens added
+
+The Projects plugin now includes Filament management screens for Fibre BOQ, Fibre Route Sections, and Fibre Work Packages. Each work package has an Allocated BOQ Items relation manager for its quantities and subcontractor rates. BOQ allocation and route-section assignment are checked against the selected project, and the fibre planning records use the existing company-scope trait. These screens are a development foundation; they have not yet been run through the application or migration test suite.
+
 ## Chainage and quantity rules
 
 - Store chainage as metres from the project-defined route origin, using decimal precision. The UI may display values such as KM 10+150.
