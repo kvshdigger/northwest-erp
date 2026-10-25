@@ -1,23 +1,12 @@
 <p align="center">
-  <a href="https://aureuserp.com">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aureuserp/temp-media/main/aureus-logo-dark.png">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/aureuserp/temp-media/main/aureus-logo-light.png">
-      <img src="https://raw.githubusercontent.com/aureuserp/temp-media/main/aureus-logo-light.png" alt="AureusERP logo">
-    </picture>
-  </a>  
+  <strong>Northwest ERP</strong><br>
+  Shared business workspace for projects, finance, HR, purchasing and sales.
 </p>
 
-<p align="center">
-<a href="https://packagist.org/packages/aureuserp/aureuserp"><img src="https://poser.pugx.org/aureuserp/aureuserp/d/total.svg" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/aureuserp/aureuserp"><img src="https://poser.pugx.org/aureuserp/aureuserp/v/stable.svg" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/aureuserp/aureuserp"><img src="https://poser.pugx.org/aureuserp/aureuserp/license.svg" alt="License"></a>
-</p>
-
-<h1 align="center">Aureus ERP</h1>
+<h1 align="center">Northwest ERP</h1>
 
 <p align="center">
-  <strong>Open-Source Enterprise Resource Planning for Modern Businesses</strong>
+  <strong>Business operations in one place</strong>
 </p>
 
 <p align="center">
@@ -49,9 +38,9 @@
 
 ## 🚀 Introduction
 
-Aureus ERP is a comprehensive, open-source Enterprise Resource Planning (ERP) solution designed for Small and Medium Enterprises (SMEs) and large-scale organizations. Built on **[Laravel 13](https://laravel.com)**, the most popular PHP framework, and **[FilamentPHP 5](https://filamentphp.com)**, a cutting-edge admin panel framework, Aureus ERP offers an extensible and developer-friendly platform for managing every aspect of your business operations.
+Northwest ERP is a customized ERP workspace based on the open-source Aureus ERP project. It is intended to bring project delivery, finance, HR, purchasing and sales workflows into one shared application for the Northwest team. The application is built with **[Laravel 13](https://laravel.com)** and **[FilamentPHP 5](https://filamentphp.com)**.
 
-Whether you're managing accounting, inventory, HR, CRM, or projects, Aureus ERP provides a modular approach that grows with your business.
+This repository is a separate customization of the upstream project; the upstream repository is not modified by these changes. Modules and workflows must be validated before production use.
 
 ---
 
@@ -159,13 +148,13 @@ Ensure your development environment meets the following requirements:
 
 ## ⚡ Quick Start
 
-Get Aureus ERP up and running in just 4 simple steps:
+Get Northwest ERP running locally in 4 steps:
 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/aureuserp/aureuserp.git
-cd aureuserp
+git clone https://github.com/kvshdigger/northwest-erp.git
+cd northwest-erp
 ```
 
 ### Step 2: Install Dependencies
@@ -194,7 +183,7 @@ php artisan erp:install
 php artisan serve
 ```
 
-Visit `http://localhost:8000` and log in with your admin credentials!
+Visit `http://localhost:8000` and log in with the administrator credentials configured for your local test environment.
 
 ---
 
