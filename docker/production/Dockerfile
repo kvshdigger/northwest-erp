@@ -3,14 +3,14 @@ FROM ubuntu:24.04
 ARG APP_REF=master
 ARG PHP_VERSION=8.4
 ARG NODE_VERSION=22
-ARG REPO_URL=https://github.com/aureuserp/aureuserp.git
+ARG REPO_URL=https://github.com/kvshdigger/northwest-erp.git
 
 ARG ADMIN_NAME=Administrator
 ARG ADMIN_EMAIL=admin@example.com
 ARG ADMIN_PASSWORD=password
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=UTC
+ENV TZ=Asia/Kuala_Lumpur
 
 RUN apt-get update && apt-get install -y \
         apt-transport-https \
