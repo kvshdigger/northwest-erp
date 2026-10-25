@@ -41,7 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->theme(asset('css/filament/admin/theme.css').'?v='.filemtime(public_path('css/filament/admin/theme.css')))
             ->login()
-            ->favicon(asset('images/favicon.ico'))
+            ->favicon(asset('images/favicon.svg'))
             ->brandLogo(asset('images/logo.svg'))
             ->brandLogoHeight('2rem')
             ->passwordReset()
