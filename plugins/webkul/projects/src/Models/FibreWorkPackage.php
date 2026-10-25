@@ -80,4 +80,9 @@ class FibreWorkPackage extends Model
     {
         return $this->hasMany(FibreWorkPackageItem::class, 'work_package_id');
     }
+
+    public function dailyProgressEntries(): HasMany
+    {
+        return $this->hasMany(FibreDailyProgress::class, 'work_package_id');
+    }
 }
