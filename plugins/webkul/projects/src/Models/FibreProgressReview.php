@@ -88,7 +88,7 @@ class FibreProgressReview extends Model
                 'company_id' => $locked->company_id,
                 'actor_id' => $actorId,
                 'event_type' => $response === 'confirmed' ? self::PIC_CONFIRMED : self::PIC_DISPUTED,
-                'quantity' => $response === 'confirmed' ? ($quantity ?? (float) $locked->reported_quantity) : $quantity,
+                'quantity' => $response === 'confirmed' ? (float) $locked->reported_quantity : $quantity,
                 'reason' => $response === 'disputed' ? trim((string) $reason) : null,
                 'notes' => $notes,
             ]);
