@@ -93,14 +93,19 @@ class RepairModules extends Command
                 return self::FAILURE;
             }
 
-            $adminRoleName = config('filament-shield.panel_user.name', 'Admin');
-            $adminRole = Role::query()->where('name', $adminRoleName)->first();
+            $adminRoleName = Utils::getPanelUserRoleName();
+            $adminRole = Role::query()->where('name', $adminRoleName)->first()
+                ?? Role::query()->where('name', 'panel_user')->first()
+                ?? Role::query()->where('is_default', true)->first();
 
             if (! $adminRole) {
-                $this->error("The configured administrator role '{$adminRoleName}' was not found.");
+                $this->error("No administrator role was found (checked '{$adminRoleName}', 'panel_user', and the default role).");
+                $this->line('Existing roles: '.Role::query()->pluck('name')->implode(', '));
 
                 return self::FAILURE;
             }
+
+            $adminRoleName = $adminRole->name;
 
             $adminRole->syncPermissions(Permission::query()->get());
             app(PermissionRegistrar::class)->forgetCachedPermissions();
