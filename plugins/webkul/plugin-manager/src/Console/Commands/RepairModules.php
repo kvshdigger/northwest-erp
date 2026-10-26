@@ -55,7 +55,7 @@ class RepairModules extends Command
             $this->info("Installing module: {$next->name}");
 
             try {
-                $exitCode = Artisan::call($command, ['--no-interaction' => true]);
+                $exitCode = Artisan::call($command);
 
                 if ($exitCode !== self::SUCCESS) {
                     $failed[] = $next->name;
