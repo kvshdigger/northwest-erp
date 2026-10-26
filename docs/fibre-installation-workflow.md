@@ -104,3 +104,9 @@ The development branch adds claim headers, claim lines, and an append-only payme
 ### Stage 5 limitations before use
 
 The claims list now supports draft claim creation, claim-line entry on the claim detail page, submit/review/approve/reject actions, and payment entry from each claim line. These actions check the standard claim update permission before review, approval, rejection, or payment. Role assignment still needs to be configured and reviewed so Finance, PM/IM, and claim creators receive only the actions intended for them. Concurrency behavior, Filament API compatibility, database migrations, and all workflow methods remain untested. Client value is indicative only and is not an invoice or recognized revenue. Tax, retention, deductions, reversals, and client invoicing are not included.
+
+## Production and delay dashboard
+
+The read-only Fibre Production Dashboard lists work-package BOQ allocations by project, route section, subcontractor and item. It displays allocated quantity, submitted reported quantity, final PM/IM-approved quantity, approved completion percentage, planned finish date, and overdue days. Quantities are shown per BOQ item and unit rather than summed across unlike units. The completion percentage is capped at 100% for display; investigate allocations where approved quantity exceeds allocation. A completed work package is not marked overdue by this view.
+
+The dashboard does not impose a universal production target because target rates vary by scope and team. Add a project/package-specific target before using it for formal team-performance scoring. The dashboard is untested and should be checked against sample data before operational use.
