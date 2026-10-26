@@ -100,7 +100,7 @@ class FibreProgressPurchaseOrderResource extends Resource
                 ->label('Release PO')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalDescription('Release locks the PO record and assigns its reference. Confirm the quantities and subcontractor rates before proceeding.')
+                ->modalDescription('Release locks the internal fibre PO record and assigns its reference. If a native Purchases order is linked, it remains Draft until separately reviewed and sent/confirmed in the Purchases module. Confirm the quantities and subcontractor rates before proceeding.')
                 ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::APPROVED && (Auth::user()?->can('release_fibre_progress_purchase_order') ?? false))
                 ->action(function (FibreProgressPurchaseOrder $record): void {
                     abort_unless(Auth::user()?->can('release_fibre_progress_purchase_order'), 403);
