@@ -110,3 +110,10 @@ The claims list now supports draft claim creation, claim-line entry on the claim
 The read-only Fibre Production Dashboard lists work-package BOQ allocations by project, route section, subcontractor and item. It displays allocated quantity, submitted reported quantity, final PM/IM-approved quantity, approved completion percentage, planned finish date, and overdue days. Quantities are shown per BOQ item and unit rather than summed across unlike units. The completion percentage is capped at 100% for display; investigate allocations where approved quantity exceeds allocation. A completed work package is not marked overdue by this view.
 
 The dashboard does not impose a universal production target because target rates vary by scope and team. Add a project/package-specific target before using it for formal team-performance scoring. The dashboard is untested and should be checked against sample data before operational use.
+
+
+## Progress-based PO generation
+
+Northwest ERP now includes a fibre progress PO register foundation. An authorized internal user can generate a review-ready PO record from final PM/IM-approved progress that has not already been allocated to an active PO. The system snapshots the subcontractor rate, calculates line amounts, and retains links to the approval and daily progress records. The reviewer must approve the record before an authorized user can release it and assign the PO reference. Released records are locked.
+
+See `docs/fibre-progress-po-workflow.md` for the full workflow and limitations. This first iteration is a custom fibre PO register, not yet a native Purchases-module order or final PDF/email dispatch. Standard resource create/update permissions are in place, but approval and release still need separate named permission gates and role assignment review. Runtime, migrations, and UI remain untested.
