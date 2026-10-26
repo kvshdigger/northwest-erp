@@ -54,3 +54,21 @@ The development branch now includes a daily progress record and Filament entry s
 - Evidence files use the private local disk. Production use requires confirming storage persistence, backups, and authorized retrieval before any subcontractor portal is enabled.
 
 Stage 2 remains untested in a running Laravel/Filament environment. Run the migrations and UI tests against a disposable development database before merging.
+
+
+## Stage 3 — PIC confirmation and dispute history
+
+The development branch adds an append-only review event log in `projects_fibre_progress_reviews` and a read-only Filament history screen. The original submitted daily progress row remains unchanged.
+
+- A PIC response is recorded as either `pic_confirmed` or `pic_disputed`. A dispute must include a reason and a proposed quantity.
+- The first PIC response is recorded once per progress entry. The current model method prevents a second PIC response from being added to the same entry.
+- An authorized PM/IM can resolve a dispute by accepting the original reported quantity, recording a corrected quantity, or rejecting the report. The resolution is a new event, with the actor, timestamp, quantity, and notes preserved.
+- Review history records cannot be edited or deleted through the model. The progress entry and each review event remain separate.
+- PIC confirmation is only agreement on the measurement; it is not inspection approval, final PM/IM approval, claimable quantity, or payment.
+- The review log is currently read-only in Filament. The callable model workflow methods are foundations for a future authenticated PIC action and PM/IM resolution screen.
+
+### Stage 3 limitations before use
+
+The app still needs server-side authorization that verifies the logged-in PIC is assigned to the relevant subcontractor work package and verifies PM/IM approval permissions before calling the workflow methods. Do not expose these methods directly to an untrusted client. The event log does not yet create claimable quantities, handle inspection records, or calculate claims. Those belong in Stage 4 and Stage 5.
+
+Stage 3 has not been run against the Laravel/Filament app or database. Validate the migration, authentication model/table conventions, company scoping, transaction/locking behavior, and automated tests in a disposable development environment before merging.
