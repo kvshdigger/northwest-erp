@@ -162,6 +162,11 @@ class FibreProgressApproval extends Model
 
         return DB::transaction(function () use ($progress, $actorId, $reason): self {
             $locked = FibreDailyProgress::query()->lockForUpdate()->findOrFail($progress->getKey());
+            $latestReview = $locked->reviews()->latest('created_at')->latest('id')->first();
+
+            if ($locked->status !== 'submitted' || ! $latestReview || in_array($latestReview->event_type, [FibreProgressReview::PIC_DISPUTED, FibreProgressReview::PM_REJECTED_REPORT], true)) {
+                throw ValidationException::withMessages(['progress' => 'A submitted, confirmed or resolved, non-rejected report is required for a final PM/IM decision.']);
+            }
 
             if ($locked->approvals()->whereIn('event_type', [self::PM_APPROVED, self::PM_REJECTED])->exists()) {
                 throw ValidationException::withMessages(['progress' => 'A final PM/IM decision is already recorded for this progress entry.']);
