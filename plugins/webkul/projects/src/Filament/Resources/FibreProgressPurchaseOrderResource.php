@@ -68,18 +68,18 @@ class FibreProgressPurchaseOrderResource extends Resource
                 ->label('Approve for release')
                 ->color('success')
                 ->form([Textarea::make('review_notes')->label('Review notes')->required()->rows(3)])
-                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW)
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW && (Auth::user()?->can('review_fibre_progress_purchase_order') ?? false))
                 ->action(function (FibreProgressPurchaseOrder $record, array $data): void {
-                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    abort_unless(Auth::user()?->can('review_fibre_progress_purchase_order'), 403);
                     $record->approveForRelease((int) Auth::id(), $data['review_notes']);
                 }),
             Action::make('return_for_correction')
                 ->label('Return for correction')
                 ->color('danger')
                 ->form([Textarea::make('reason')->label('Reason')->required()->rows(3)])
-                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW)
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW && (Auth::user()?->can('review_fibre_progress_purchase_order') ?? false))
                 ->action(function (FibreProgressPurchaseOrder $record, array $data): void {
-                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    abort_unless(Auth::user()?->can('review_fibre_progress_purchase_order'), 403);
                     $record->rejectForCorrection((int) Auth::id(), $data['reason']);
                 }),
             Action::make('release_po')
@@ -87,9 +87,9 @@ class FibreProgressPurchaseOrderResource extends Resource
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalDescription('Release locks the PO record and assigns its reference. Confirm the quantities and subcontractor rates before proceeding.')
-                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::APPROVED)
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::APPROVED && (Auth::user()?->can('release_fibre_progress_purchase_order') ?? false))
                 ->action(function (FibreProgressPurchaseOrder $record): void {
-                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    abort_unless(Auth::user()?->can('release_fibre_progress_purchase_order'), 403);
                     $record->release((int) Auth::id());
                 }),
         ]);
