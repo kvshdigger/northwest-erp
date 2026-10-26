@@ -4,6 +4,7 @@ namespace Webkul\Project\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Webkul\Security\Models\User;
@@ -123,5 +124,10 @@ class FibreDailyProgress extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(FibreProgressReview::class, 'progress_id')->orderBy('created_at')->orderBy('id');
     }
 }
