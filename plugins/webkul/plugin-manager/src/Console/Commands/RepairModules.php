@@ -116,7 +116,7 @@ class RepairModules extends Command
             // The initial admin account is created first during ERP setup. If it
             // has no role, attach the repaired admin role so Shield can authorize
             // its resources. Do not overwrite roles on other existing users.
-            $userModel = config('auth.providers.users.model', \\App\\Models\\User::class);
+            $userModel = config('auth.providers.users.model', \App\Models\User::class);
 
             if (class_exists($userModel) && method_exists($userModel, 'query')) {
                 $initialUser = $userModel::query()->orderBy('id')->first();
