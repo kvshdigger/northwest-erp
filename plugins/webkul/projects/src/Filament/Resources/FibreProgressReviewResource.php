@@ -1,13 +1,13 @@
 <?php
 
-namespace Webkul\\Project\\Filament\\Resources;
+namespace Webkul\Project\Filament\Resources;
 
-use Filament\\Resources\\Resource;
-use Filament\\Tables\\Columns\\TextColumn;
-use Filament\\Tables\\Table;
-use Webkul\\Project\\Filament\\Resources\\FibreProgressReviewResource\\Pages\\ListFibreProgressReviews;
-use Webkul\\Project\\Models\\FibreProgressReview;
-use Webkul\\Support\\Enums\\NavigationGroup;
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Webkul\Project\Filament\Resources\FibreProgressReviewResource\Pages\ListFibreProgressReviews;
+use Webkul\Project\Models\FibreProgressReview;
+use Webkul\Support\Enums\NavigationGroup;
 
 class FibreProgressReviewResource extends Resource
 {
@@ -20,7 +20,7 @@ class FibreProgressReviewResource extends Resource
         return 'Fibre PIC Review History';
     }
 
-    public static function getNavigationGroup(): string|\\UnitEnum
+    public static function getNavigationGroup(): string|\UnitEnum
     {
         return NavigationGroup::Project;
     }
