@@ -67,6 +67,7 @@ class ItemsRelationManager extends RelationManager
                   ])
                   ->visible(fn (FibreClaimItem $record): bool => in_array($record->claim?->status, [FibreClaim::APPROVED, FibreClaim::PARTIALLY_PAID], true))
                   ->action(function (FibreClaimItem $record, array $data): void {
+                      abort_unless(Auth::user()?->can('update', $record->claim), 403);
                       FibreClaimPayment::query()->create([
                           'claim_item_id' => $record->getKey(),
                           'recorded_by' => Auth::id(),
