@@ -72,3 +72,21 @@ The development branch adds an append-only review event log in `projects_fibre_p
 The app still needs server-side authorization that verifies the logged-in PIC is assigned to the relevant subcontractor work package and verifies PM/IM approval permissions before calling the workflow methods. Do not expose these methods directly to an untrusted client. The event log does not yet create claimable quantities, handle inspection records, or calculate claims. Those belong in Stage 4 and Stage 5.
 
 Stage 3 has not been run against the Laravel/Filament app or database. Validate the migration, authentication model/table conventions, company scoping, transaction/locking behavior, and automated tests in a disposable development environment before merging.
+
+
+## Stage 4 — Inspection and final PM/IM approval
+
+The development branch now adds `projects_fibre_progress_approvals`, an append-only event history for inspection outcomes and final PM/IM decisions, plus a read-only Filament history screen.
+
+- Inspection is only recorded against a submitted entry with a PIC response or a resolved dispute. An unresolved dispute or rejected report blocks inspection.
+- A passed inspection must record an accepted quantity greater than zero and no greater than the confirmed/resolved measurement quantity. A failed inspection requires a reason and records zero accepted quantity.
+- Final PM/IM approval requires a passed inspection as the latest inspection/approval event and a non-rejected, confirmed/resolved report.
+- Final approved quantity must be greater than zero and cannot exceed the latest inspected accepted quantity. The final decision is recorded as a new event; it does not modify the original daily progress report.
+- Final approval is separate from PIC confirmation and inspection. A `pm_approved` event is the prerequisite for later claim processing, but the claim engine and paid quantities are not implemented in this stage.
+- Inspection and approval history is append-only through the model and the Filament screen is read-only. The workflow methods are not yet connected to an operational inspection form or approval action.
+
+### Stage 4 limitations before use
+
+The caller must enforce server-side permissions for the assigned inspector and authorized PM/IM, and must verify required evidence—including photographs of concealed work before backfilling—before recording inspection. The current foundation does not independently verify that photos exist for a particular inspection, does not implement an approved photo-exception workflow, and does not calculate claimable balances. Stage 5 must calculate claims from final approved quantities while preventing duplicate claims and keeping subcontractor rates separate from client rates.
+
+Stage 4 has not been run in the Laravel/Filament application. Validate migration order, authentication/table conventions, company scoping, and the workflow in a disposable development environment before merging.
