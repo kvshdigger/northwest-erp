@@ -42,6 +42,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->theme(secure_asset('css/filament/admin/theme.css') . '?v=' . filemtime(public_path('css/filament/admin/theme.css')))
+            ->renderHook(PanelsRenderHook::SIDEBAR_FOOTER, fn (): HtmlString => new HtmlString(
+                '<div class="px-4 py-2 text-xs text-gray-500">Role: <span class="font-semibold text-gray-700">'.e(Auth::user()?->getRoleNames()->first() ?? 'No role assigned').'</span></div>'
+            ))
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): HtmlString => new HtmlString(<<<'HTML'
 <style>
 /* Northwest ERP login — clean split layout */
