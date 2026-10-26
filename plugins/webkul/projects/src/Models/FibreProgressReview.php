@@ -1,13 +1,13 @@
 <?php
 
-namespace Webkul\\Project\\Models;
+namespace Webkul\Project\Models;
 
-use Illuminate\\Database\\Eloquent\\Model;
-use Illuminate\\Database\\Eloquent\\Relations\\BelongsTo;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Validation\\ValidationException;
-use Webkul\\Security\\Models\\User;
-use Webkul\\Support\\Traits\\BelongsToCompany;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Webkul\Security\Models\User;
+use Webkul\Support\Traits\BelongsToCompany;
 
 class FibreProgressReview extends Model
 {
