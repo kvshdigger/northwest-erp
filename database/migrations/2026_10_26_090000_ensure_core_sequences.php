@@ -1,12 +1,12 @@
 <?php
 
-use Illuminate\\Database\\Migrations\\Migration;
-use Illuminate\\Support\\Facades\\Schema;
-use Webkul\\Account\\Database\\Seeders\\SequenceSeeder as AccountSequenceSeeder;
-use Webkul\\Inventory\\Database\\Seeders\\SequenceSeeder as InventorySequenceSeeder;
-use Webkul\\Manufacturing\\Database\\Seeders\\SequenceSeeder as ManufacturingSequenceSeeder;
-use Webkul\\Purchase\\Database\\Seeders\\SequenceSeeder as PurchaseSequenceSeeder;
-use Webkul\\Sale\\Database\\Seeders\\SequenceSeeder as SalesSequenceSeeder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
+use Webkul\Account\Database\Seeders\SequenceSeeder as AccountSequenceSeeder;
+use Webkul\Inventory\Database\Seeders\SequenceSeeder as InventorySequenceSeeder;
+use Webkul\Manufacturing\Database\Seeders\SequenceSeeder as ManufacturingSequenceSeeder;
+use Webkul\Purchase\Database\Seeders\SequenceSeeder as PurchaseSequenceSeeder;
+use Webkul\Sale\Database\Seeders\SequenceSeeder as SalesSequenceSeeder;
 
 return new class extends Migration
 {
