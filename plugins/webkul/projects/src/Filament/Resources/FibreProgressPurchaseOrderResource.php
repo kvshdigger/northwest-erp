@@ -2,9 +2,12 @@
 
 namespace Webkul\Project\Filament\Resources;
 
+use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Webkul\Project\Filament\Resources\FibreProgressPurchaseOrderResource\Pages\ListFibreProgressPurchaseOrders;
 use Webkul\Project\Models\FibreProgressPurchaseOrder;
 use Webkul\Support\Enums\NavigationGroup;
@@ -28,8 +31,7 @@ class FibreProgressPurchaseOrderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('po_reference')->label('PO reference')->searchable()->sortable()
-                ->placeholder('Awaiting release'),
+            TextColumn::make('po_reference')->label('PO reference')->searchable()->sortable()->placeholder('Awaiting release'),
             TextColumn::make('project.name')->label('Project')->searchable(),
             TextColumn::make('workPackage.name')->label('Work package')->searchable(),
             TextColumn::make('workPackage.subcontractor.name')->label('Subcontractor')->searchable(),
@@ -45,7 +47,36 @@ class FibreProgressPurchaseOrderResource extends Resource
             ->withSum('lines', 'approved_quantity')
             ->withSum('lines', 'line_amount'))
         ->defaultSort('created_at', 'desc')
-        ->recordActions([]);
+        ->recordActions([
+            Action::make('approve_for_release')
+                ->label('Approve for release')
+                ->color('success')
+                ->form([Textarea::make('review_notes')->label('Review notes')->required()->rows(3)])
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW)
+                ->action(function (FibreProgressPurchaseOrder $record, array $data): void {
+                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    $record->approveForRelease((int) Auth::id(), $data['review_notes']);
+                }),
+            Action::make('return_for_correction')
+                ->label('Return for correction')
+                ->color('danger')
+                ->form([Textarea::make('reason')->label('Reason')->required()->rows(3)])
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::PENDING_REVIEW)
+                ->action(function (FibreProgressPurchaseOrder $record, array $data): void {
+                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    $record->rejectForCorrection((int) Auth::id(), $data['reason']);
+                }),
+            Action::make('release_po')
+                ->label('Release PO')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalDescription('Release locks the PO record and assigns its reference. Confirm the quantities and subcontractor rates before proceeding.')
+                ->visible(fn (FibreProgressPurchaseOrder $record): bool => $record->status === FibreProgressPurchaseOrder::APPROVED)
+                ->action(function (FibreProgressPurchaseOrder $record): void {
+                    abort_unless(Auth::user()?->can('update', $record), 403);
+                    $record->release((int) Auth::id());
+                }),
+        ]);
     }
 
     public static function getPages(): array
