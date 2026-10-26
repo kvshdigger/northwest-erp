@@ -36,7 +36,7 @@ return [
             FibreDailyProgressResource::class => [...$basic, ...$delete],
             FibreProgressReviewResource::class => ['view_any', 'view'],
             FibreProgressApprovalResource::class => ['view_any', 'view'],
-            FibreClaimResource::class => ['view_any', 'view'],
+            FibreClaimResource::class => [...$basic],
             FibreClaimBalanceResource::class => ['view_any', 'view'],
             FibreRouteSectionResource::class => [...$basic, ...$delete],
             FibreWorkPackageResource::class => [...$basic, ...$delete],
