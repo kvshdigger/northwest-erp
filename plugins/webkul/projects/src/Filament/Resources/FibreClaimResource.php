@@ -79,21 +79,21 @@ class FibreClaimResource extends Resource
                   ->label('Submit claim')
                   ->requiresConfirmation()
                   ->visible(fn (FibreClaim $record): bool => $record->status === FibreClaim::DRAFT && $record->items()->exists())
-                  ->action(fn (FibreClaim $record) => $record->submit((int) Auth::id())),
+                  ->action(function (FibreClaim $record): void { abort_unless(Auth::user()?->can('update', $record), 403); $record->submit((int) Auth::id()); }),
               Action::make('review')
                   ->form([Textarea::make('notes')->required()])
                   ->visible(fn (FibreClaim $record): bool => $record->status === FibreClaim::SUBMITTED)
-                  ->action(fn (FibreClaim $record, array $data) => $record->markReviewed((int) Auth::id(), $data['notes'])),
+                  ->action(function (FibreClaim $record, array $data): void { abort_unless(Auth::user()?->can('update', $record), 403); $record->markReviewed((int) Auth::id(), $data['notes']); }),
               Action::make('approve')
                   ->form([Textarea::make('notes')->required()])
                   ->color('success')
                   ->visible(fn (FibreClaim $record): bool => in_array($record->status, [FibreClaim::SUBMITTED, FibreClaim::REVIEWED], true))
-                  ->action(fn (FibreClaim $record, array $data) => $record->approve((int) Auth::id(), $data['notes'])),
+                  ->action(function (FibreClaim $record, array $data): void { abort_unless(Auth::user()?->can('update', $record), 403); $record->approve((int) Auth::id(), $data['notes']); }),
               Action::make('reject')
                   ->form([Textarea::make('reason')->required()])
                   ->color('danger')
                   ->visible(fn (FibreClaim $record): bool => in_array($record->status, [FibreClaim::SUBMITTED, FibreClaim::REVIEWED], true))
-                  ->action(fn (FibreClaim $record, array $data) => $record->reject((int) Auth::id(), $data['reason'])),
+                  ->action(function (FibreClaim $record, array $data): void { abort_unless(Auth::user()?->can('update', $record), 403); $record->reject((int) Auth::id(), $data['reason']); }),
           ]);
     }
 
@@ -107,6 +107,7 @@ class FibreClaimResource extends Resource
         return [
             'index' => ListFibreClaims::route('/'),
             'create' => CreateFibreClaim::route('/create'),
+            'edit' => EditFibreClaim::route('/{record}/edit'),
         ];
     }
 }
