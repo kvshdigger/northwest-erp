@@ -13,10 +13,10 @@
 ## Rules
 
 - Unsubmitted, disputed, inspected-only, or not-final-approved progress cannot be included.
-- Each final PM/IM approval can be allocated to one PO line only. The database unique constraint provides a final duplicate guard.
+- Each final PM/IM approval can be allocated to one non-rejected PO line at a time. A package-level transaction lock and active-PO lookup prevent normal duplicate generation; validate this behavior under concurrency before production. Rejected PO records retain their audit lines but do not block generating a replacement.
 - Client BOQ rates are not copied into PO lines. The line amount uses a snapshot of the assigned subcontractor rate.
 - Released PO records are immutable. Corrections or scope changes should be recorded as a separate variation/correction workflow rather than silently editing the released record.
-- Returning a PO for correction does not release it. The current first iteration marks the record rejected; a corrected PO should be generated after the underlying progress/allocation issue is resolved.
+- Returning a PO for correction marks it rejected and retains its line history. A replacement can be generated from the same approved progress once the underlying issue is resolved.
 - This PO workflow does not change or merge the original Aureus repository.
 
 ## Implementation boundary
