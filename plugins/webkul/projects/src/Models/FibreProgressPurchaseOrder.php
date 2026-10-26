@@ -167,7 +167,7 @@ class FibreProgressPurchaseOrder extends Model
             }
 
             $nativeOrder = PurchaseOrder::query()->create([
-                'description' => 'Generated from Northwest ERP fibre progress PO #'.$po->id.'. '.$po->notes,
+                'description' => 'Generated from Northwest ERP fibre progress PO #'.$po->id.'.',
                 'origin' => 'Fibre Progress PO #'.$po->id,
                 'partner_id' => $partnerId,
                 'currency_id' => $company->currency_id,
