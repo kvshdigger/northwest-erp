@@ -38,13 +38,18 @@ class FibreClaimPayment extends Model
             if (! in_array($claim->status, [FibreClaim::APPROVED, FibreClaim::PARTIALLY_PAID], true)) {
                 throw ValidationException::withMessages(['claim_item_id' => 'Payments can only be recorded against an approved claim.']);
             }
-            if ((float) $payment->quantity_paid <= 0 || (float) $payment->amount_paid < 0) {
+            if ((float) $payment->quantity_paid <= 0 || (float) $payment->amount_paid <= 0) {
                 throw ValidationException::withMessages(['quantity_paid' => 'Paid quantity must be positive and paid amount cannot be negative.']);
             }
 
             $alreadyPaid = (float) FibreClaimPayment::query()->where('claim_item_id', $line->id)->sum('quantity_paid');
+            $alreadyPaidAmount = (float) FibreClaimPayment::query()->where('claim_item_id', $line->id)->sum('amount_paid');
             if ($alreadyPaid + (float) $payment->quantity_paid > (float) $line->quantity_claimed + 0.0005) {
                 throw ValidationException::withMessages(['quantity_paid' => 'Paid quantity cannot exceed the claimed quantity.']);
+            }
+
+            if ($alreadyPaidAmount + (float) $payment->amount_paid > (float) $line->amount + 0.005) {
+                throw ValidationException::withMessages(['amount_paid' => 'Cumulative payment amount cannot exceed the claim line amount.']);
             }
 
             $payment->company_id = $claim->company_id;
