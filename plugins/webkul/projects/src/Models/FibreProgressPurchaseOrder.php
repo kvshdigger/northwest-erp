@@ -5,7 +5,6 @@ namespace Webkul\Project\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Webkul\Support\Traits\BelongsToCompany;
@@ -54,7 +53,7 @@ class FibreProgressPurchaseOrder extends Model
 
     /**
      * Create a review-ready PO record only from final PM/IM-approved progress.
-     * Each final approval can be allocated to one PO line only.
+     * Each final approval can be allocated to one non-rejected PO line at a time.
      */
     public static function generateFromApprovedProgress(int $workPackageId, int $actorId, ?string $notes = null): self
     {
