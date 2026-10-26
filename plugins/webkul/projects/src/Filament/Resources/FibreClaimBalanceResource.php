@@ -21,7 +21,7 @@ class FibreClaimBalanceResource extends Resource
         return 'Fibre Claim Balances';
     }
 
-    public static function getNavigationGroup(): string\UnitEnum
+    public static function getNavigationGroup(): string|\UnitEnum
     {
         return NavigationGroup::Project;
     }
