@@ -10,6 +10,7 @@ use Webkul\Project\Filament\Resources\ProjectResource;
 use Webkul\Project\Filament\Resources\FibreBoqItemResource;
 use Webkul\Project\Filament\Resources\FibreDailyProgressResource;
 use Webkul\Project\Filament\Resources\FibreProgressReviewResource;
+use Webkul\Project\Filament\Resources\FibreProgressApprovalResource;
 use Webkul\Project\Filament\Resources\FibreRouteSectionResource;
 use Webkul\Project\Filament\Resources\FibreWorkPackageResource;
 use Webkul\Project\Filament\Resources\TaskResource;
@@ -31,7 +32,8 @@ return [
             ProjectResource::class      => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
             FibreBoqItemResource::class => [...$basic, ...$delete],
             FibreDailyProgressResource::class => [...$basic, ...$delete],
-            FibreProgressReviewResource::class => ['view_any', 'view'],\n            FibreProgressReviewResource::class => ['view_any', 'view'],
+            FibreProgressReviewResource::class => ['view_any', 'view'],
+            FibreProgressApprovalResource::class => ['view_any', 'view'],
             FibreRouteSectionResource::class => [...$basic, ...$delete],
             FibreWorkPackageResource::class => [...$basic, ...$delete],
             TaskResource::class         => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
