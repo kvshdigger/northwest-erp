@@ -99,10 +99,16 @@ class RepairModules extends Command
                 ?? Role::query()->where('is_default', true)->first();
 
             if (! $adminRole) {
-                $this->error("No administrator role was found (checked '{$adminRoleName}', 'panel_user', and the default role).");
-                $this->line('Existing roles: '.Role::query()->pluck('name')->implode(', '));
+                // The ERP may have an existing admin user but an empty roles table
+                // if the initial Shield seeder did not run. Create the configured
+                // panel role non-destructively so permission repair can continue.
+                $guardName = config('auth.defaults.guard', 'web');
+                $adminRole = Role::query()->firstOrCreate([
+                    'name' => $adminRoleName,
+                    'guard_name' => $guardName,
+                ]);
 
-                return self::FAILURE;
+                $this->warn("Administrator role '{$adminRoleName}' was missing; created it using guard '{$guardName}'.");
             }
 
             $adminRoleName = $adminRole->name;
