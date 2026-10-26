@@ -22,7 +22,7 @@ class FibreProductionDashboardResource extends Resource
         return 'Fibre Production Dashboard';
     }
 
-    public static function getNavigationGroup(): string\|\UnitEnum
+    public static function getNavigationGroup(): string|\UnitEnum
     {
         return NavigationGroup::Project;
     }
