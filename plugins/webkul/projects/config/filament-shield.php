@@ -7,6 +7,16 @@ use Webkul\Project\Filament\Clusters\Configurations\Resources\ProjectStageResour
 use Webkul\Project\Filament\Clusters\Configurations\Resources\TagResource;
 use Webkul\Project\Filament\Clusters\Configurations\Resources\TaskStageResource;
 use Webkul\Project\Filament\Resources\ProjectResource;
+use Webkul\Project\Filament\Resources\FibreBoqItemResource;
+use Webkul\Project\Filament\Resources\FibreDailyProgressResource;
+use Webkul\Project\Filament\Resources\FibreProgressReviewResource;
+use Webkul\Project\Filament\Resources\FibreProgressApprovalResource;
+use Webkul\Project\Filament\Resources\FibreClaimResource;
+use Webkul\Project\Filament\Resources\FibreClaimBalanceResource;
+use Webkul\Project\Filament\Resources\FibreProductionDashboardResource;
+use Webkul\Project\Filament\Resources\FibreProgressPurchaseOrderResource;
+use Webkul\Project\Filament\Resources\FibreRouteSectionResource;
+use Webkul\Project\Filament\Resources\FibreWorkPackageResource;
 use Webkul\Project\Filament\Resources\TaskResource;
 
 $basic = ['view_any', 'view', 'create', 'update'];
@@ -24,6 +34,16 @@ return [
             ProjectStageResource::class => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
             TaskStageResource::class    => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
             ProjectResource::class      => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
+            FibreBoqItemResource::class => [...$basic, ...$delete],
+            FibreDailyProgressResource::class => [...$basic, ...$delete],
+            FibreProgressReviewResource::class => ['view_any', 'view'],
+            FibreProgressApprovalResource::class => ['view_any', 'view'],
+            FibreClaimResource::class => [...$basic],
+            FibreClaimBalanceResource::class => ['view_any', 'view'],
+            FibreProductionDashboardResource::class => ['view_any', 'view'],
+            FibreProgressPurchaseOrderResource::class => ['view_any', 'view', 'create', 'update', 'review', 'release'],
+            FibreRouteSectionResource::class => [...$basic, ...$delete],
+            FibreWorkPackageResource::class => [...$basic, ...$delete],
             TaskResource::class         => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
         ],
         'exclude' => [],

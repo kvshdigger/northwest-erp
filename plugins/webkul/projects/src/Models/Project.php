@@ -163,6 +163,26 @@ class Project extends Model implements Sortable
         return $this->hasMany(Task::class);
     }
 
+    public function fibreBoqItems(): HasMany
+    {
+        return $this->hasMany(FibreBoqItem::class);
+    }
+
+    public function fibreRouteSections(): HasMany
+    {
+        return $this->hasMany(FibreRouteSection::class);
+    }
+
+    public function fibreWorkPackages(): HasMany
+    {
+        return $this->hasMany(FibreWorkPackage::class);
+    }
+
+    public function fibreDailyProgressEntries(): HasMany
+    {
+        return $this->hasMany(FibreDailyProgress::class, 'project_id');
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
