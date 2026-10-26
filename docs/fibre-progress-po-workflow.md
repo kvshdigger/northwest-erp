@@ -24,3 +24,17 @@
 The current implementation adds a Northwest ERP fibre progress PO register and a review/release workflow in the Projects plugin. It is a controlled, auditable PO record, but it is **not yet connected to the generic Purchases module's native order/product/UOM/tax lifecycle or a final PDF/email dispatch workflow**. Before treating it as the company's official native purchase order, integrate the approved PO into the Purchases module and test its vendor, currency, item, tax, numbering, print, and approval requirements.
 
 Separate PO review and release permissions are now declared in Shield configuration and checked by the PO actions (`review_fibre_progress_purchase_order` and `release_fibre_progress_purchase_order`). Assign these only to designated internal roles, then verify with test accounts that unauthorized users cannot invoke the actions. The Fibre BOQ resource contains internal client pricing; restrict its view/create/update/delete permissions to the internal project/management team and do not grant them to subcontractor-facing accounts. This repository change does not itself assign user roles. Native Purchases-module integration and final PDF/email dispatch remain outstanding. Migrations, Filament actions, concurrency behavior, and runtime behavior have not been tested in a running application.
+
+## Native Purchases-module draft integration
+
+- After internal approval, an authorized user can choose **Create native draft PO** from the fibre PO register.
+- The system creates a native Purchases order in **Draft** state and stores its ID on the fibre PO record. The link is unique and creation is transaction-protected; repeating the action returns the linked order instead of creating a duplicate.
+- The native vendor is the subcontractor assigned to the work package, and the native order uses the owning company's configured currency.
+- Native order lines are descriptive amount lines. Their descriptions preserve the exact approved fibre quantity (3 decimals), BOQ code/unit, and subcontractor rate because the native purchase-line quantity column only supports 2 decimals. Each line's amount and the order total use the approved subcontractor amount; client BOQ rates are never copied.
+- The native order remains a draft. This integration does **not** send email, mark the order as sent, confirm it, or create inventory receipts.
+- The linked native order is available from the fibre PO register. If the subcontractor or company currency is missing, creation is rejected with a validation message.
+
+## Permission and validation note
+
+The action checks the dedicated `create_native_draft_fibre_progress_purchase_order` permission. Assign it only to authorized internal purchasing/management roles. Migrations, Filament rendering, vendor visibility, totals, and role assignments still need to be validated in a disposable development environment before production use.
+

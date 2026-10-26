@@ -41,7 +41,7 @@ return [
             FibreClaimResource::class => [...$basic],
             FibreClaimBalanceResource::class => ['view_any', 'view'],
             FibreProductionDashboardResource::class => ['view_any', 'view'],
-            FibreProgressPurchaseOrderResource::class => ['view_any', 'view', 'create', 'update', 'review', 'release'],
+            FibreProgressPurchaseOrderResource::class => ['view_any', 'view', 'create', 'update', 'review', 'release', 'create_native_draft'],
             FibreRouteSectionResource::class => [...$basic, ...$delete],
             FibreWorkPackageResource::class => [...$basic, ...$delete],
             TaskResource::class         => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
