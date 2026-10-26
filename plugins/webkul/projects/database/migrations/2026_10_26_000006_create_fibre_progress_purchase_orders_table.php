@@ -30,7 +30,8 @@ return new class extends Migration
         Schema::create('projects_fibre_progress_po_lines', function (Blueprint $table) {
             $table->id();
             $table->foreignId('progress_po_id')->constrained('projects_fibre_progress_pos')->restrictOnDelete();
-            $table->foreignId('progress_approval_id')->unique()->constrained('projects_fibre_progress_approvals')->restrictOnDelete();
+            $table->foreignId('progress_approval_id')->constrained('projects_fibre_progress_approvals')->restrictOnDelete();
+            $table->index('progress_approval_id', 'fibre_progress_po_approval_idx');
             $table->foreignId('progress_id')->constrained('projects_fibre_daily_progress')->restrictOnDelete();
             $table->foreignId('work_package_item_id')->constrained('projects_fibre_work_package_items')->restrictOnDelete();
             $table->decimal('approved_quantity', 14, 3);
