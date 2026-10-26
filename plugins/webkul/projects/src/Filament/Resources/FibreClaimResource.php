@@ -43,6 +43,7 @@ class FibreClaimResource extends Resource
             Select::make('project_id')
                 ->relationship('project', 'name')
                 ->searchable()->preload()->required()->live()
+                ->disabled(fn (?FibreClaim $record): bool => $record !== null && ($record->status !== FibreClaim::DRAFT || $record->items()->exists()))
                 ->afterStateUpdated(fn (Set $set) => $set('work_package_id', null)),
             Select::make('work_package_id')
                 ->label('Work package / subcontractor')
@@ -55,9 +56,11 @@ class FibreClaimResource extends Resource
                     ),
                 )
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->name.' — '.($record->subcontractor?->name ?? 'Subcontractor'))
-                ->searchable()->preload()->required(),
-            TextInput::make('claim_reference')->required()->maxLength(100)->unique(ignoreRecord: true),
-            Textarea::make('notes')->columnSpanFull(),
+                ->searchable()->preload()->required()
+                ->disabled(fn (?FibreClaim $record): bool => $record !== null && ($record->status !== FibreClaim::DRAFT || $record->items()->exists())),
+            TextInput::make('claim_reference')->required()->maxLength(100)->unique(ignoreRecord: true)
+                ->disabled(fn (?FibreClaim $record): bool => $record !== null && $record->status !== FibreClaim::DRAFT),
+            Textarea::make('notes')->disabled(fn (?FibreClaim $record): bool => $record !== null && $record->status !== FibreClaim::DRAFT)->columnSpanFull(),
         ])->columns(2);
     }
 
