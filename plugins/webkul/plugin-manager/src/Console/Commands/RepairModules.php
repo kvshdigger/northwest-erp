@@ -113,6 +113,20 @@ class RepairModules extends Command
 
             $adminRoleName = $adminRole->name;
 
+            // The initial admin account is created first during ERP setup. If it
+            // has no role, attach the repaired admin role so Shield can authorize
+            // its resources. Do not overwrite roles on other existing users.
+            $userModel = config('auth.providers.users.model', \\App\\Models\\User::class);
+
+            if (class_exists($userModel) && method_exists($userModel, 'query')) {
+                $initialUser = $userModel::query()->orderBy('id')->first();
+
+                if ($initialUser && method_exists($initialUser, 'getRoleNames') && $initialUser->getRoleNames()->isEmpty()) {
+                    $initialUser->syncRoles($adminRole);
+                    $this->info("Assigned administrator role '{$adminRoleName}' to the initial user account.");
+                }
+            }
+
             $adminRole->syncPermissions(Permission::query()->get());
             app(PermissionRegistrar::class)->forgetCachedPermissions();
             Package::refreshPluginCaches();
