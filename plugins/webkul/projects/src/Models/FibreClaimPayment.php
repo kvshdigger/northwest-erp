@@ -61,11 +61,12 @@ class FibreClaimPayment extends Model
                 if (! $claim) {
                     return;
                 }
-                $lines = $claim->items()->withSum('payments', 'quantity_paid')->get();
+                $lines = $claim->items()->withSum('payments', 'quantity_paid')->withSum('payments', 'amount_paid')->get();
                 $allPaid = $lines->isNotEmpty() && $lines->every(
                     fn ($line) => (float) ($line->payments_sum_quantity_paid ?? 0) + 0.0005 >= (float) $line->quantity_claimed
+                        && (float) ($line->payments_sum_amount_paid ?? 0) + 0.005 >= (float) $line->amount
                 );
-                $somePaid = $lines->contains(fn ($line) => (float) ($line->payments_sum_quantity_paid ?? 0) > 0);
+                $somePaid = $lines->contains(fn ($line) => (float) ($line->payments_sum_quantity_paid ?? 0) > 0 || (float) ($line->payments_sum_amount_paid ?? 0) > 0);
                 $claim->status = $allPaid ? FibreClaim::PAID : ($somePaid ? FibreClaim::PARTIALLY_PAID : FibreClaim::APPROVED);
                 $claim->save();
             });
