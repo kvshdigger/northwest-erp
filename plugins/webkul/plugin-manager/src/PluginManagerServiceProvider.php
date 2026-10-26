@@ -8,6 +8,7 @@ use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\Event;
 use Webkul\PluginManager\Console\Commands\FindMissingTranslations;
 use Webkul\PluginManager\Console\Commands\InstallERP;
+use Webkul\PluginManager\Console\Commands\RepairModules;
 
 class PluginManagerServiceProvider extends PackageServiceProvider
 {
@@ -30,6 +31,7 @@ class PluginManagerServiceProvider extends PackageServiceProvider
             ->hasCommands([
                 InstallERP::class,
                 FindMissingTranslations::class,
+                RepairModules::class,
             ]);
     }
 
