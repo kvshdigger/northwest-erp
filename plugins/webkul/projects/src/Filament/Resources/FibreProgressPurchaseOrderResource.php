@@ -10,7 +10,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Project\Filament\Resources\FibreProgressPurchaseOrderResource\Pages\ListFibreProgressPurchaseOrders;
 use Webkul\Project\Models\FibreProgressPurchaseOrder;
-use Webkul\Purchase\Filament\Admin\Clusters\Orders\Resources\PurchaseOrderResource;
+use Webkul\Purchase\Filament\Admin\Clusters\Orders\Resources\QuotationResource;
 use Webkul\Support\Enums\NavigationGroup;
 
 class FibreProgressPurchaseOrderResource extends Resource
@@ -37,7 +37,7 @@ class FibreProgressPurchaseOrderResource extends Resource
             TextColumn::make('workPackage.name')->label('Work package')->searchable(),
             TextColumn::make('workPackage.subcontractor.name')->label('Subcontractor')->searchable(),
             TextColumn::make('status')->badge()->sortable(),
-            TextColumn::make('nativeOrder.name')->label('Native PO')->placeholder('Not created')->url(fn (FibreProgressPurchaseOrder $record): ?string => $record->native_order_id ? PurchaseOrderResource::getUrl('view', ['record' => $record->native_order_id], panel: 'admin') : null),
+            TextColumn::make('nativeOrder.name')->label('Native PO')->placeholder('Not created')->url(fn (FibreProgressPurchaseOrder $record): ?string => $record->native_order_id ? QuotationResource::getUrl('view', ['record' => $record->native_order_id], panel: 'admin') : null),
             TextColumn::make('lines_sum_approved_quantity')->label('Approved qty')->numeric(decimalPlaces: 3),
             TextColumn::make('lines_sum_line_amount')->label('PO amount (RM)')->numeric(decimalPlaces: 2),
             TextColumn::make('created_at')->label('Generated')->dateTime()->sortable(),
