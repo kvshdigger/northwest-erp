@@ -107,25 +107,19 @@ class FibreClaimItem extends Model
         }
 
         $approved = $this->approvedQuantityForAllocation();
-        $reserved = self::query()
+        $reservedElsewhere = (float) self::query()
             ->join('projects_fibre_claims as claims', 'claims.id', '=', 'projects_fibre_claim_items.claim_id')
             ->where('projects_fibre_claim_items.work_package_item_id', $this->work_package_item_id)
+            ->where('projects_fibre_claim_items.claim_id', '!=', $claim->id)
             ->whereIn('claims.status', [
                 FibreClaim::SUBMITTED, FibreClaim::REVIEWED, FibreClaim::APPROVED,
                 FibreClaim::PARTIALLY_PAID, FibreClaim::PAID,
             ])
-            ->when($this->claim_id, fn ($query) => $query->where('projects_fibre_claim_items.claim_id', '!=', $this->claim_id))
             ->sum('projects_fibre_claim_items.quantity_claimed');
 
-        $sameClaimReserved = self::query()
-            ->where('work_package_item_id', $this->work_package_item_id)
-            ->where('claim_id', $this->claim_id)
-            ->sum('quantity_claimed');
-        $available = $approved - (float) $reserved - (float) $sameClaimReserved;
-        if ((float) $this->quantity_claimed > $available + 0.0005) {
+        if ((float) $this->quantity_claimed > $approved - $reservedElsewhere + 0.0005) {
             throw ValidationException::withMessages([
-                'quantity_claimed' => 'Claim quantity exceeds the remaining final-approved quantity. Approved: '.number_format($approved, 3).'; already reserved: '.number_format((float) $reserved + (float) $sameClaimReserved, 3).'.',
+                'quantity_claimed' => 'Claim quantity exceeds the remaining final-approved quantity. Approved: '.number_format($approved, 3).'; reserved in other claims: '.number_format($reservedElsewhere, 3).'.',
             ]);
         }
-    }
-}
+    }}
