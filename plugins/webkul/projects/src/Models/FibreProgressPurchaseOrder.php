@@ -2,7 +2,6 @@
 
 namespace Webkul\Project\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,11 +50,6 @@ class FibreProgressPurchaseOrder extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(FibreProgressPurchaseOrderLine::class, 'progress_po_id');
-    }
-
-    public function scopeVisibleToCompany(Builder $query): Builder
-    {
-        return $query;
     }
 
     /**
