@@ -90,3 +90,17 @@ The development branch now adds `projects_fibre_progress_approvals`, an append-o
 The caller must enforce server-side permissions for the assigned inspector and authorized PM/IM, and must verify required evidence—including photographs of concealed work before backfilling—before recording inspection. The current foundation does not independently verify that photos exist for a particular inspection, does not implement an approved photo-exception workflow, and does not calculate claimable balances. Stage 5 must calculate claims from final approved quantities while preventing duplicate claims and keeping subcontractor rates separate from client rates.
 
 Stage 4 has not been run in the Laravel/Filament application. Validate migration order, authentication/table conventions, company scoping, and the workflow in a disposable development environment before merging.
+
+## Stage 5 — Subcontractor claims and balance view
+
+The development branch adds claim headers, claim lines, and an append-only payment ledger:
+
+- Claims progress through draft, submitted, reviewed, approved, partially paid, paid, or rejected.
+- A claim line can only be created for an allocation in that claim's work package. The claim amount snapshots the work package's subcontractor rate; the client BOQ rate remains separate.
+- Claim quantities are checked against final `pm_approved` quantities for the same work-package BOQ allocation. Submitted, reviewed, approved, partially paid, and paid claims reserve quantities; draft and rejected claims do not.
+- Payment events record paid quantity and amount separately. Cumulative paid quantity cannot exceed the claim line quantity. Payment events are append-only.
+- The read-only Fibre Subcontractor Claims screen shows claim status and value. The Fibre Claim Balances view compares final-approved, claim-reserved, paid, and remaining claimable quantities, while showing client rate/value separately from subcontractor cost.
+
+### Stage 5 limitations before use
+
+The claim list and balance view are read-only; draft creation, line entry, submission, review, approval, rejection, and payment entry are not yet connected to operational forms. Server-side authorization must be enforced before calling workflow methods. Concurrency behavior, the Filament API compatibility, database migrations, and all workflow methods remain untested. Client value is indicative only and is not an invoice or recognized revenue. Tax, retention, deductions, reversals, and client invoicing are not included.
