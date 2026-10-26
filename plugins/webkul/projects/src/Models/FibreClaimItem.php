@@ -121,5 +121,5 @@ class FibreClaimItem extends Model
             throw ValidationException::withMessages([
                 'quantity_claimed' => 'Claim quantity exceeds the remaining final-approved quantity. Approved: '.number_format($approved, 3).'; reserved in other claims: '.number_format($reservedElsewhere, 3).'.',
             ]);
-        }
-    }}
+        }    }
+}
