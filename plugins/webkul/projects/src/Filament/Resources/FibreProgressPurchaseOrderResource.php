@@ -1,0 +1,57 @@
+<?php
+
+namespace Webkul\Project\Filament\Resources;
+
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Webkul\Project\Filament\Resources\FibreProgressPurchaseOrderResource\Pages\ListFibreProgressPurchaseOrders;
+use Webkul\Project\Models\FibreProgressPurchaseOrder;
+use Webkul\Support\Enums\NavigationGroup;
+
+class FibreProgressPurchaseOrderResource extends Resource
+{
+    protected static ?string $model = FibreProgressPurchaseOrder::class;
+    protected static ?string $slug = 'project/fibre-progress-pos';
+    protected static ?string $recordTitleAttribute = 'po_reference';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Fibre Progress POs';
+    }
+
+    public static function getNavigationGroup(): string|\UnitEnum
+    {
+        return NavigationGroup::Project;
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->columns([
+            TextColumn::make('po_reference')->label('PO reference')->searchable()->sortable()
+                ->placeholder('Awaiting release'),
+            TextColumn::make('project.name')->label('Project')->searchable(),
+            TextColumn::make('workPackage.name')->label('Work package')->searchable(),
+            TextColumn::make('workPackage.subcontractor.name')->label('Subcontractor')->searchable(),
+            TextColumn::make('status')->badge()->sortable(),
+            TextColumn::make('lines_sum_approved_quantity')->label('Approved qty')->numeric(decimalPlaces: 3),
+            TextColumn::make('lines_sum_line_amount')->label('PO amount (RM)')->numeric(decimalPlaces: 2),
+            TextColumn::make('created_at')->label('Generated')->dateTime()->sortable(),
+            TextColumn::make('reviewed_at')->label('Reviewed')->dateTime()->sortable(),
+            TextColumn::make('released_at')->label('Released')->dateTime()->sortable(),
+        ])
+        ->modifyQueryUsing(fn ($query) => $query
+            ->with(['project', 'workPackage.subcontractor'])
+            ->withSum('lines', 'approved_quantity')
+            ->withSum('lines', 'line_amount'))
+        ->defaultSort('created_at', 'desc')
+        ->recordActions([]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListFibreProgressPurchaseOrders::route('/'),
+        ];
+    }
+}
