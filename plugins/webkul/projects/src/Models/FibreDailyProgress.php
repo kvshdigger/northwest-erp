@@ -128,11 +128,11 @@ class FibreDailyProgress extends Model
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(FibreProgressReview::class, 'progress_id')->orderBy('created_at')->orderBy('id');
+        return $this->hasMany(FibreProgressReview::class, 'progress_id');
     }
 
     public function approvals(): HasMany
     {
-        return $this->hasMany(FibreProgressApproval::class, 'progress_id')->orderBy('created_at')->orderBy('id');
+        return $this->hasMany(FibreProgressApproval::class, 'progress_id');
     }
 }
