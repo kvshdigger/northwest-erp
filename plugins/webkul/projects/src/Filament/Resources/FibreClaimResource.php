@@ -75,6 +75,7 @@ class FibreClaimResource extends Resource
             TextColumn::make('approved_at')->dateTime()->sortable(),
         ])->modifyQueryUsing(fn ($query) => $query->withSum('items', 'quantity_claimed')->withSum('items', 'amount'))
           ->defaultSort('created_at', 'desc')
+          ->recordUrl(fn (FibreClaim $record): string => static::getUrl('edit', ['record' => $record]))
           ->recordActions([
               Action::make('submit')
                   ->label('Submit claim')
