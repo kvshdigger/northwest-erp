@@ -130,4 +130,9 @@ class FibreDailyProgress extends Model
     {
         return $this->hasMany(FibreProgressReview::class, 'progress_id')->orderBy('created_at')->orderBy('id');
     }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(FibreProgressApproval::class, 'progress_id')->orderBy('created_at')->orderBy('id');
+    }
 }
