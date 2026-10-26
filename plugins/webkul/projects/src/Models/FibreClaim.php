@@ -56,6 +56,17 @@ class FibreClaim extends Model
             if ($claim->isDirty(['project_id', 'work_package_id', 'claim_reference']) && $claim->getOriginal('status') !== self::DRAFT) {
                 throw ValidationException::withMessages(['claim' => 'A submitted claim identity cannot be changed.']);
             }
+
+            if ($claim->isDirty(['project_id', 'work_package_id']) && $claim->items()->exists()) {
+                throw ValidationException::withMessages(['claim' => 'Project and work package cannot be changed after claim lines have been added.']);
+            }
+
+            $package = FibreWorkPackage::query()->findOrFail($claim->work_package_id);
+            if ((int) $package->project_id !== (int) $claim->project_id) {
+                throw ValidationException::withMessages(['work_package_id' => 'The work package must belong to the selected project.']);
+            }
+
+            $claim->company_id = $package->company_id;
         });
     }
 
