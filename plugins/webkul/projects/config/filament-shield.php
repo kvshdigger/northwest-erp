@@ -29,7 +29,7 @@ return [
             TaskStageResource::class    => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
             ProjectResource::class      => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
             FibreBoqItemResource::class => [...$basic, ...$delete],
-            FibreDailyProgressResource::class => [...$basic, ...$delete],
+            FibreDailyProgressResource::class => [...$basic, ...$delete],\n            FibreProgressReviewResource::class => ['view_any', 'view'],
             FibreRouteSectionResource::class => [...$basic, ...$delete],
             FibreWorkPackageResource::class => [...$basic, ...$delete],
             TaskResource::class         => [...$basic, ...$delete, ...$restore, ...$forceDelete, ...$reorder],
