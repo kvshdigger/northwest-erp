@@ -54,7 +54,7 @@ class AdminPanelProvider extends PanelProvider
     background: #f6f8fc !important;
 }
 .fi-simple-layout::before {
-    content: "NORTHWEST ERP\\A\\A A clearer view of your business.\\A\\A One workspace for your operations, finances, and day-to-day decisions.";
+    content: "NORTHWEST ERP\A\A A clearer view of your business.\A\A One workspace for your operations, finances, and day-to-day decisions.";
     white-space: pre-line;
     display: flex;
     align-items: center;
@@ -171,7 +171,7 @@ class AdminPanelProvider extends PanelProvider
         padding: 1.75rem 1.5rem;
         font-size: 1rem;
         line-height: 1.55;
-        content: "NORTHWEST ERP\\A A clearer view of your business.";
+        content: "NORTHWEST ERP\A A clearer view of your business.";
     }
     .fi-simple-layout::after { display: none; }
     .fi-simple-main-ctn {
