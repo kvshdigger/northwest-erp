@@ -50,6 +50,7 @@ class FibreProgressPurchaseOrderResource extends Resource
         ->recordActions([
             Action::make('view_po_breakdown')
                 ->label('View PO breakdown')
+                ->requiresConfirmation()
                 ->modalHeading('Progress-based PO breakdown')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Close')
