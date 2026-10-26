@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Project\Filament\Resources\FibreClaimResource\Pages\CreateFibreClaim;
+use Webkul\Project\Filament\Resources\FibreClaimResource\Pages\EditFibreClaim;
 use Webkul\Project\Filament\Resources\FibreClaimResource\Pages\ListFibreClaims;
 use Webkul\Project\Filament\Resources\FibreClaimResource\RelationManagers\ItemsRelationManager;
 use Webkul\Project\Models\FibreClaim;
@@ -31,7 +32,7 @@ class FibreClaimResource extends Resource
         return 'Fibre Subcontractor Claims';
     }
 
-    public static function getNavigationGroup(): string\UnitEnum
+    public static function getNavigationGroup(): string|\UnitEnum
     {
         return NavigationGroup::Project;
     }
