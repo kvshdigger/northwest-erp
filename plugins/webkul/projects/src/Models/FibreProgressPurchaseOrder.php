@@ -77,7 +77,9 @@ class FibreProgressPurchaseOrder extends Model
                 ->whereNotExists(function ($query) {
                     $query->selectRaw('1')
                         ->from('projects_fibre_progress_po_lines as po_lines')
-                        ->whereColumn('po_lines.progress_approval_id', 'projects_fibre_progress_approvals.id');
+                        ->join('projects_fibre_progress_pos as existing_pos', 'existing_pos.id', '=', 'po_lines.progress_po_id')
+                        ->whereColumn('po_lines.progress_approval_id', 'projects_fibre_progress_approvals.id')
+                        ->where('existing_pos.status', '!=', self::REJECTED);
                 })
                 ->select('projects_fibre_progress_approvals.id')
                 ->orderBy('projects_fibre_progress_approvals.id')
