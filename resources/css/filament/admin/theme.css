@@ -6,3 +6,150 @@
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../plugins/webkul/*/src/**/*.php';
 @source '../../../../plugins/webkul/*/resources/views/**/*.blade.php';
+
+/* Northwest ERP — premium split-screen authentication */
+.fi-simple-layout {
+    --nw-ink: #111d35;
+    --nw-muted: #6c7890;
+    min-height: 100vh;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
+    align-items: stretch;
+    gap: 0;
+    padding: 0 !important;
+    background: #f7f8fb;
+}
+
+.fi-simple-layout::before {
+    content: "NORTHWEST ERP\\A\\A A clearer view of your business.\\A\\A One workspace for your operations,\\Afinances, and day-to-day decisions.";
+    white-space: pre-line;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100vh;
+    padding: clamp(3rem, 7vw, 7rem);
+    color: #fff;
+    font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+    line-height: 1.8;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    background:
+        radial-gradient(ellipse at 18% 20%, rgba(67, 111, 190, .35), transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(28, 72, 137, .55), transparent 42%),
+        linear-gradient(145deg, #101b32 0%, #172c50 55%, #0c1629 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.fi-simple-layout::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 54.5%;
+    height: 100%;
+    pointer-events: none;
+    opacity: .18;
+    background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: linear-gradient(135deg, black, transparent 82%);
+}
+
+.fi-simple-main {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: clamp(2rem, 5vw, 5rem) !important;
+    background: #f7f8fb;
+}
+
+.fi-simple-main-ctn {
+    width: 100%;
+    max-width: 440px !important;
+}
+
+.fi-simple-header {
+    margin-bottom: 2rem;
+}
+
+.fi-simple-header .fi-logo {
+    max-height: 2.5rem;
+    width: auto;
+}
+
+.fi-simple-page {
+    border: 1px solid #e7eaf0;
+    border-radius: 1.25rem;
+    background: #fff;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    box-shadow: 0 22px 60px rgba(17, 29, 53, .07);
+}
+
+.fi-simple-page .fi-header-heading {
+    color: #111d35;
+    font-size: 1.65rem;
+    font-weight: 650;
+    letter-spacing: -0.035em;
+}
+
+.fi-simple-page .fi-header-subheading {
+    color: #788398;
+    font-size: .925rem;
+    line-height: 1.6;
+}
+
+.fi-simple-page .fi-input-wrp {
+    border-color: #dfe4ed;
+    border-radius: .7rem;
+    box-shadow: none;
+}
+
+.fi-simple-page .fi-input-wrp:focus-within {
+    border-color: #355b96;
+    box-shadow: 0 0 0 3px rgba(53, 91, 150, .12);
+}
+
+.fi-simple-page .fi-btn {
+    min-height: 2.9rem;
+    border-radius: .7rem;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+@media (max-width: 900px) {
+    .fi-simple-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fi-simple-layout::before {
+        min-height: auto;
+        padding: 2rem 1.5rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        content: "NORTHWEST ERP\\A A clearer view of your business.";
+    }
+
+    .fi-simple-layout::after {
+        display: none;
+    }
+
+    .fi-simple-main {
+        min-height: auto;
+        padding: 2rem 1.25rem 3rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .fi-simple-layout::before {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .fi-simple-page {
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+}
