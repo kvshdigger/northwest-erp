@@ -140,6 +140,14 @@ class DailyProgressReportResource extends Resource
                 TextColumn::make('section_name')->searchable(),
                 TextColumn::make('team_or_subcontractor')->searchable(),
                 TextColumn::make('entries_count')->counts('entries')->label('Activities'),
+                IconColumn::make('has_chainage_overlap')
+                    ->label('Overlap')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-exclamation-triangle')
+                    ->falseIcon('heroicon-o-check-circle')
+                    ->trueColor('warning')
+                    ->falseColor('success')
+                    ->tooltip(fn (DailyProgressReport $record): string => $record->has_chainage_overlap ? 'Overlapping chainage found. Review before approving cumulative progress.' : 'No overlapping chainage detected.'),
                 TextColumn::make('created_at')->dateTime()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
