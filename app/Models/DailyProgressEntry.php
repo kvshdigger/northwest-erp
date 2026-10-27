@@ -132,7 +132,7 @@ class DailyProgressEntry extends Model
         }
 
         return self::query()
-            ->whereKeyNot($this->getKey())
+            ->where($this->getQualifiedKeyName(), '!=', $this->getKey())
             ->where('activity', $this->activity)
             ->where('start_chainage_m', '<', $this->end_chainage_m)
             ->where('end_chainage_m', '>', $this->start_chainage_m)
