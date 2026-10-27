@@ -77,7 +77,9 @@ class DailyProgressReportResource extends Resource
         return $schema->components([
             DatePicker::make('report_date')->label('Report Date')->required()->default(now())->native(false),
             TextInput::make('project_route')->label('Project / Route')->required()->maxLength(255),
-            TextInput::make('section_name')->label('Work Section')->placeholder('e.g. CH 0+000 to CH 1+000'),
+            TextInput::make('section_name')->label('Work Section')->placeholder('e.g. Gemas–Mentakab')->required(),
+            TextInput::make('section_start_chainage')->label('Section Start CH')->placeholder('0+000')->live(onBlur: true)->required(),
+            TextInput::make('section_end_chainage')->label('Section End CH')->placeholder('1+000')->live(onBlur: true)->required(),
             TextInput::make('team_or_subcontractor')->label('Team / Subcontractor'),
             Textarea::make('remarks')->columnSpanFull(),
             Repeater::make('entries')
@@ -140,6 +142,9 @@ class DailyProgressReportResource extends Resource
                 TextColumn::make('section_name')->searchable(),
                 TextColumn::make('team_or_subcontractor')->searchable(),
                 TextColumn::make('entries_count')->counts('entries')->label('Activities'),
+                TextColumn::make('open_cut_completed')->label('Open Cut')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
+                TextColumn::make('fibre_installation_completed')->label('Fibre Install')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
+                TextColumn::make('fibre_splicing_completed')->label('Fibre Splicing')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
                 IconColumn::make('has_chainage_overlap')
                     ->label('Overlap')
                     ->boolean()
