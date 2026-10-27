@@ -13,6 +13,10 @@ return new class extends Migration
             $table->date('report_date')->index();
             $table->string('project_route');
             $table->string('section_name')->nullable();
+            $table->string('section_start_chainage', 30)->nullable();
+            $table->string('section_end_chainage', 30)->nullable();
+            $table->decimal('section_start_chainage_m', 12, 3)->nullable();
+            $table->decimal('section_end_chainage_m', 12, 3)->nullable();
             $table->string('team_or_subcontractor')->nullable();
             $table->text('remarks')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
