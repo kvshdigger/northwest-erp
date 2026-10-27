@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use InvalidArgumentException;
 
 class DailyProgressEntry extends Model
 {
@@ -38,18 +39,32 @@ class DailyProgressEntry extends Model
     {
         static::saving(function (self $entry): void {
             if (! isset($entry->start_chainage, $entry->end_chainage)) {
-                throw new \InvalidArgumentException('Start and end chainage are required.');
+                throw new InvalidArgumentException('Start and end chainage are required.');
             }
 
-            $entry->start_chainage_m = self::parseChainage($entry->start_chainage);
-            $entry->end_chainage_m = self::parseChainage($entry->end_chainage);
-
-            if ((float) $entry->end_chainage_m <= (float) $entry->start_chainage_m) {
-                throw new \InvalidArgumentException('End chainage must be greater than start chainage.');
+            if (! array_key_exists((string) $entry->activity, self::ACTIVITIES)) {
+                throw new InvalidArgumentException('Select a valid progress activity.');
             }
 
-            $entry->chainage_length_m = (float) $entry->end_chainage_m - (float) $entry->start_chainage_m;
-            $entry->unit = self::ACTIVITIES[$entry->activity] ?? $entry->unit;
+            $start = self::parseChainage((string) $entry->start_chainage);
+            $end = self::parseChainage((string) $entry->end_chainage);
+
+            if ($end <= $start) {
+                throw new InvalidArgumentException('End chainage must be greater than start chainage.');
+            }
+
+            if ($entry->daily_quantity === null || ! is_numeric($entry->daily_quantity) || (float) $entry->daily_quantity <= 0) {
+                throw new InvalidArgumentException('Daily quantity must be greater than zero.');
+            }
+
+            if ($entry->planned_quantity !== null && (float) $entry->planned_quantity < 0) {
+                throw new InvalidArgumentException('Planned quantity cannot be negative.');
+            }
+
+            $entry->start_chainage_m = $start;
+            $entry->end_chainage_m = $end;
+            $entry->chainage_length_m = $end - $start;
+            $entry->unit = self::ACTIVITIES[$entry->activity];
         });
     }
 
@@ -58,14 +73,73 @@ class DailyProgressEntry extends Model
         return $this->belongsTo(DailyProgressReport::class, 'daily_progress_report_id');
     }
 
+    /**
+     * Returns chainage coverage without double-counting overlapping intervals.
+     * This is meaningful for metre-based activities only.
+     */
     public function getCumulativeQuantityAttribute(): float
     {
-        return (float) self::query()
+        if (($this->unit ?? self::ACTIVITIES[$this->activity] ?? null) !== 'm' || ! $this->report) {
+            return (float) self::query()
+                ->where('activity', $this->activity)
+                ->whereHas('report', fn ($query) => $query
+                    ->where('project_route', $this->report?->project_route)
+                    ->where('section_name', $this->report?->section_name))
+                ->sum('daily_quantity');
+        }
+
+        $intervals = self::query()
             ->where('activity', $this->activity)
-            ->whereHas('report', fn ($query) => $query->where('project_route', $this->report?->project_route))
+            ->whereHas('report', fn ($query) => $query
+                ->where('project_route', $this->report->project_route)
+                ->where('section_name', $this->report->section_name))
+            ->orderBy('start_chainage_m')
+            ->get(['start_chainage_m', 'end_chainage_m']);
+
+        $ranges = $intervals
+            ->map(fn (self $entry) => [(float) $entry->start_chainage_m, (float) $entry->end_chainage_m])
+            ->sortBy(fn (array $range) => $range[0])
+            ->values();
+
+        $total = 0.0;
+        $start = null;
+        $end = null;
+
+        foreach ($ranges as [$nextStart, $nextEnd]) {
+            if ($start === null) {
+                $start = $nextStart;
+                $end = $nextEnd;
+                continue;
+            }
+
+            if ($nextStart <= $end) {
+                $end = max($end, $nextEnd);
+                continue;
+            }
+
+            $total += $end - $start;
+            $start = $nextStart;
+            $end = $nextEnd;
+        }
+
+        return $start === null ? 0.0 : $total + $end - $start;
+    }
+
+    public function getHasOverlappingChainageAttribute(): bool
+    {
+        if (! $this->exists || ! $this->report) {
+            return false;
+        }
+
+        return self::query()
+            ->whereKeyNot($this->getKey())
+            ->where('activity', $this->activity)
             ->where('start_chainage_m', '<', $this->end_chainage_m)
             ->where('end_chainage_m', '>', $this->start_chainage_m)
-            ->sum('daily_quantity');
+            ->whereHas('report', fn ($query) => $query
+                ->where('project_route', $this->report->project_route)
+                ->where('section_name', $this->report->section_name))
+            ->exists();
     }
 
     public function getRemainingQuantityAttribute(): ?float
@@ -80,14 +154,21 @@ class DailyProgressEntry extends Model
     public static function parseChainage(string $value): float
     {
         $value = trim(strtoupper($value));
+
         if (preg_match('/^(\d+)\s*\+\s*(\d+(?:\.\d+)?)$/', $value, $matches)) {
-            return ((float) $matches[1] * 1000) + (float) $matches[2];
+            $offset = (float) $matches[2];
+
+            if ($offset >= 1000) {
+                throw new InvalidArgumentException('Chainage offset must be less than 1000 metres, e.g. 1+250.');
+            }
+
+            return ((float) $matches[1] * 1000) + $offset;
         }
 
-        if (is_numeric($value)) {
+        if (is_numeric($value) && (float) $value >= 0) {
             return (float) $value;
         }
 
-        throw new \InvalidArgumentException('Chainage must be formatted like 0+100 or entered as metres.');
+        throw new InvalidArgumentException('Chainage must be formatted like 0+100 or entered as a non-negative metre value.');
     }
 }
