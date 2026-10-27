@@ -38,14 +38,14 @@ class DailyProgressEntry extends Model
     {
         static::saving(function (self $entry): void {
             if (! isset($entry->start_chainage, $entry->end_chainage)) {
-                throw new \\InvalidArgumentException('Start and end chainage are required.');
+                throw new \InvalidArgumentException('Start and end chainage are required.');
             }
 
             $entry->start_chainage_m = self::parseChainage($entry->start_chainage);
             $entry->end_chainage_m = self::parseChainage($entry->end_chainage);
 
             if ((float) $entry->end_chainage_m <= (float) $entry->start_chainage_m) {
-                throw new \\InvalidArgumentException('End chainage must be greater than start chainage.');
+                throw new \InvalidArgumentException('End chainage must be greater than start chainage.');
             }
 
             $entry->chainage_length_m = (float) $entry->end_chainage_m - (float) $entry->start_chainage_m;
