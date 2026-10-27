@@ -108,8 +108,8 @@ class DailyProgressReportResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set, Get $get): void {
                             static::updateChainageFields($get('start_chainage'), $state, $set);
                         }),
-                    TextInput::make('start_chainage_m')->numeric()->required()->hidden(),
-                    TextInput::make('end_chainage_m')->numeric()->required()->hidden(),
+                    TextInput::make('start_chainage_m')->numeric()->hidden(),
+                    TextInput::make('end_chainage_m')->numeric()->hidden(),
                     TextInput::make('chainage_length_m')->label('Chainage Length (m)')->numeric()->readOnly()->dehydrated(),
                     TextInput::make('planned_quantity')->label('BOQ / Planned Qty')->numeric()->minValue(0),
                     TextInput::make('daily_quantity')->label('Daily Quantity')->numeric()->required()->minValue(0.001),
