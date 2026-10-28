@@ -13,6 +13,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -78,49 +79,119 @@ class DailyProgressReportResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            DatePicker::make('report_date')->label('Report Date')->required()->default(now())->native(false),
-            TextInput::make('project_route')->label('Project / Route')->required()->maxLength(255),
-            TextInput::make('section_name')->label('Work Section')->placeholder('e.g. Gemas–Mentakab')->required(),
-            TextInput::make('section_start_chainage')->label('Section Start CH')->placeholder('0+000')->live(onBlur: true)->required(),
-            TextInput::make('section_end_chainage')->label('Section End CH')->placeholder('1+000')->live(onBlur: true)->required(),
-            TextInput::make('team_or_subcontractor')->label('Team / Subcontractor'),
-            Textarea::make('remarks')->columnSpanFull(),
-            Repeater::make('entries')
-                ->relationship()
-                ->label('Activity Progress')
+            Section::make('Report Details')
+                ->description('Enter the date, route and work area for this site report.')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->columns(2)
                 ->schema([
-                    Select::make('activity')
-                        ->options(array_combine(array_keys(DailyProgressEntry::ACTIVITIES), array_keys(DailyProgressEntry::ACTIVITIES)))
+                    DatePicker::make('report_date')
+                        ->label('Report Date')
                         ->required()
-                        ->live()
-                        ->afterStateUpdated(function ($state, callable $set): void {
-                            $set('unit', DailyProgressEntry::ACTIVITIES[$state] ?? 'm');
-                        }),
-                    TextInput::make('unit')->required()->readOnly()->default('m'),
-                    TextInput::make('start_chainage')
-                        ->label('Start CH')
+                        ->default(now())
+                        ->native(false),
+                    TextInput::make('project_route')
+                        ->label('Project / Route')
+                        ->placeholder('e.g. Skudai–PTP')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('section_name')
+                        ->label('Work Location')
+                        ->placeholder('e.g. KM 0–KM 1')
+                        ->required(),
+                    TextInput::make('team_or_subcontractor')
+                        ->label('Team / Subcontractor')
+                        ->placeholder('Enter team or subcontractor name'),
+                    TextInput::make('section_start_chainage')
+                        ->label('Section Start CH')
                         ->placeholder('0+000')
-                        ->required()
+                        ->helperText('Use chainage format, e.g. 0+000.')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function ($state, callable $set, Get $get): void {
-                            static::updateChainageFields($state, $get('end_chainage'), $set);
-                        }),
-                    TextInput::make('end_chainage')
-                        ->label('End CH')
-                        ->placeholder('0+100')
-                        ->required()
+                        ->required(),
+                    TextInput::make('section_end_chainage')
+                        ->label('Section End CH')
+                        ->placeholder('1+000')
+                        ->helperText('End chainage for this work section.')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function ($state, callable $set, Get $get): void {
-                            static::updateChainageFields($get('start_chainage'), $state, $set);
-                        }),
-                    TextInput::make('start_chainage_m')->numeric()->hidden(),
-                    TextInput::make('end_chainage_m')->numeric()->hidden(),
-                    TextInput::make('chainage_length_m')->label('Chainage Length (m)')->numeric()->readOnly()->dehydrated(),
-                    TextInput::make('planned_quantity')->label('BOQ / Planned Qty')->numeric()->minValue(0),
-                    TextInput::make('daily_quantity')->label('Daily Quantity')->numeric()->required()->minValue(0.001),
-                    Textarea::make('remarks')->label('Activity Remarks')->columnSpanFull(),
-                ])->columns(4)->minItems(1)->defaultItems(1)->columnSpanFull(),
-        ])->columns(2);
+                        ->required(),
+                ]),
+            Section::make('Daily Activity Progress')
+                ->description('Add each activity completed today. Enter the start and end chainage for every activity; the length is calculated automatically.')
+                ->icon('heroicon-o-chart-bar')
+                ->schema([
+                    Repeater::make('entries')
+                        ->relationship()
+                        ->label('Activities completed today')
+                        ->addActionLabel('Add another activity')
+                        ->itemLabel(fn (array $state): ?string => ($state['activity'] ?? null) ?: 'New activity')
+                        ->schema([
+                            Select::make('activity')
+                                ->label('Activity')
+                                ->options(array_combine(array_keys(DailyProgressEntry::ACTIVITIES), array_keys(DailyProgressEntry::ACTIVITIES)))
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set): void {
+                                    $set('unit', DailyProgressEntry::ACTIVITIES[$state] ?? 'm');
+                                }),
+                            TextInput::make('daily_quantity')
+                                ->label('Quantity completed today')
+                                ->numeric()
+                                ->minValue(0.001)
+                                ->required()
+                                ->suffix(fn (Get $get): string => $get('unit') ?: 'unit'),
+                            TextInput::make('start_chainage')
+                                ->label('Start CH')
+                                ->placeholder('0+000')
+                                ->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                    static::updateChainageFields($state, $get('end_chainage'), $set);
+                                }),
+                            TextInput::make('end_chainage')
+                                ->label('End CH')
+                                ->placeholder('0+100')
+                                ->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                    static::updateChainageFields($get('start_chainage'), $state, $set);
+                                }),
+                            TextInput::make('chainage_length_m')
+                                ->label('Calculated length (m)')
+                                ->numeric()
+                                ->readOnly()
+                                ->dehydrated(),
+                            TextInput::make('unit')
+                                ->label('Unit')
+                                ->readOnly()
+                                ->default('m')
+                                ->dehydrated(),
+                            TextInput::make('planned_quantity')
+                                ->label('Planned / BOQ quantity (optional)')
+                                ->numeric()
+                                ->minValue(0),
+                            Textarea::make('remarks')
+                                ->label('Activity remarks (optional)')
+                                ->rows(2)
+                                ->columnSpanFull(),
+                            TextInput::make('start_chainage_m')->numeric()->hidden(),
+                            TextInput::make('end_chainage_m')->numeric()->hidden(),
+                        ])
+                        ->columns(2)
+                        ->defaultItems(1)
+                        ->minItems(1)
+                        ->reorderable(false)
+                        ->columnSpanFull(),
+                ]),
+            Section::make('Remarks')
+                ->description('Optional notes for the supervisor or project manager.')
+                ->schema([
+                    Textarea::make('remarks')
+                        ->label('Daily site remarks')
+                        ->placeholder('Weather, access issues, manpower, delays or other notes.')
+                        ->rows(3)
+                        ->columnSpanFull(),
+                ])
+                ->collapsed(),
+        ])->columns(1);
     }
 
     protected static function updateChainageFields(?string $start, ?string $end, callable $set): void
