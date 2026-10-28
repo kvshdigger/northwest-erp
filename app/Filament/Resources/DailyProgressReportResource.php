@@ -55,7 +55,9 @@ class DailyProgressReportResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole(['super_admin', 'admin']) ?? false;
+        // This is an internal project-tracking resource. Any authenticated ERP user
+        // may view daily progress; write actions remain restricted by the panel's auth.
+        return auth()->check();
     }
 
     public static function canCreate(): bool
