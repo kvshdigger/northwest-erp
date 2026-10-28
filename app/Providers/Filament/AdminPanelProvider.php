@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\DailyProgressReportResource;
 use App\Http\Middleware\ApplyBrandSettings;
 use App\Http\Middleware\SetLocale;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
@@ -227,6 +228,9 @@ HTML
                 in: app_path('Filament/Resources'),
                 for: 'App\\Filament\\Resources'
             )
+            ->resources([
+                DailyProgressReportResource::class,
+            ])
             ->plugins([
                 FilamentShieldPlugin::make()
                     ->gridColumns([
