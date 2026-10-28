@@ -223,6 +223,10 @@ HTML
                     ]
                 )->all()
             )
+            ->discoverResources(
+                in: app_path('Filament/Resources'),
+                for: 'App\\Filament\\Resources'
+            )
             ->plugins([
                 FilamentShieldPlugin::make()
                     ->gridColumns([
