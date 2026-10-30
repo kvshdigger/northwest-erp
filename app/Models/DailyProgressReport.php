@@ -10,7 +10,7 @@ use InvalidArgumentException;
 class DailyProgressReport extends Model
 {
     protected $fillable = [
-        'report_date', 'project_route', 'section_name', 'section_start_chainage',
+        'project_id', 'report_date', 'project_route', 'section_name', 'section_start_chainage',
         'section_end_chainage', 'section_start_chainage_m', 'section_end_chainage_m',
         'team_or_subcontractor', 'remarks', 'created_by',
     ];
@@ -50,7 +50,7 @@ class DailyProgressReport extends Model
         });
     }
 
-    public function entries(): HasMany
+    public function project(): BelongsTo\n    {\n        return $this->belongsTo(Project::class);\n    }\n\n    public function entries(): HasMany
     {
         return $this->hasMany(DailyProgressEntry::class);
     }
