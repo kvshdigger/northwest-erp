@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Models;
+namespace App\Models;
 
-use Illuminate\\Database\\Eloquent\\Model;
-use Illuminate\\Database\\Eloquent\\Relations\\BelongsTo;
-use Webkul\\Project\\Models\\Project;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Webkul\Project\Models\Project;
 
 class ProjectProgressActivity extends Model
 {
