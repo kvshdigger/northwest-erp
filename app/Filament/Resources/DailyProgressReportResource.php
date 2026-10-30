@@ -89,7 +89,26 @@ class DailyProgressReportResource extends Resource
                     Select::make('project_id')
                         ->label('Project')
                         ->options(fn () => Project::query()->orderBy('name')->pluck('name', 'id')->all())
-                        ->searchable()->preload()->required()->live(),
+                        ->searchable()->preload()->required()->live()
+                        ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                            // Populate the selected project's configured activities once on a new report.
+                            // Preserve existing rows when editing or when the user has already entered data.
+                            if (filled($get('entries'))) {
+                                return;
+                            }
+
+                            $set('entries', ProjectProgressActivity::query()
+                                ->where('project_id', $state)
+                                ->where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
+                                ->get(['name', 'unit'])
+                                ->map(fn (ProjectProgressActivity $activity): array => [
+                                    'activity' => $activity->name,
+                                    'unit' => $activity->unit,
+                                ])
+                                ->all());
+                        }),
                     DatePicker::make('report_date')
                         ->label('Report Date')
                         ->required()
@@ -112,16 +131,16 @@ class DailyProgressReportResource extends Resource
                         ->placeholder('0+000')
                         ->helperText('Use chainage format, e.g. 0+000.')
                         ->live(onBlur: true)
-                        ->required(),
+                        ->required(fn (Get $get): bool => collect($get('entries') ?? [])->contains(fn ($entry) => ($entry['unit'] ?? null) === 'm')),
                     TextInput::make('section_end_chainage')
                         ->label('Section End CH')
                         ->placeholder('1+000')
                         ->helperText('End chainage for this work section.')
                         ->live(onBlur: true)
-                        ->required(),
+                        ->required(fn (Get $get): bool => collect($get('entries') ?? [])->contains(fn ($entry) => ($entry['unit'] ?? null) === 'm')),
                 ]),
             Section::make('Daily Activity Progress')
-                ->description('Add each activity completed today. Enter the start and end chainage for every activity; the length is calculated automatically.')
+                ->description('Configured activities for the selected project are loaded automatically. Add another row when the same activity covers a different chainage section.')
                 ->icon('heroicon-o-chart-bar')
                 ->schema([
                     Repeater::make('entries')
