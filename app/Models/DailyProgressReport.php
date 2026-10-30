@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Webkul\Project\Models\Project;
 use InvalidArgumentException;
 
 class DailyProgressReport extends Model
@@ -50,7 +51,12 @@ class DailyProgressReport extends Model
         });
     }
 
-    public function project(): BelongsTo\n    {\n        return $this->belongsTo(Project::class);\n    }\n\n    public function entries(): HasMany
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function entries(): HasMany
     {
         return $this->hasMany(DailyProgressEntry::class);
     }
