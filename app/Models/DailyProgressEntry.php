@@ -104,13 +104,21 @@ class DailyProgressEntry extends Model
      */
     public function getCumulativeQuantityAttribute(): float
     {
-        if (($this->unit ?? (self::ACTIVITIES[$this->activity] ?? null)) !== 'm' || ! $this->report) {
+        if (! $this->report) {
+            return 0.0;
+        }
+
+        if (($this->unit ?? (self::ACTIVITIES[$this->activity] ?? null)) !== 'm') {
             return (float) self::query()
                 ->where('activity', $this->activity)
-                ->whereHas('report', fn ($query) => $query
-                    ->where('project_route', $this->report?->project_route)
-                    ->where('section_name', $this->report?->section_name)
-                    ->when($this->report?->project_id, fn ($q) => $q->where('project_id', $this->report->project_id)))
+                ->whereHas('report', function ($query): void {
+                    $query->where('project_route', $this->report->project_route)
+                        ->where('section_name', $this->report->section_name);
+
+                    $this->report->project_id
+                        ? $query->where('project_id', $this->report->project_id)
+                        : $query->whereNull('project_id');
+                })
                 ->sum('daily_quantity');
         }
 
@@ -119,7 +127,7 @@ class DailyProgressEntry extends Model
             ->whereHas('report', fn ($query) => $query
                 ->where('project_route', $this->report->project_route)
                 ->where('section_name', $this->report->section_name)
-                ->when($this->report->project_id, fn ($q) => $q->where('project_id', $this->report->project_id)))
+                ->when($this->report->project_id, fn ($q) => $q->where('project_id', $this->report->project_id), fn ($q) => $q->whereNull('project_id')))
             ->orderBy('start_chainage_m')
             ->get(['start_chainage_m', 'end_chainage_m']);
 
