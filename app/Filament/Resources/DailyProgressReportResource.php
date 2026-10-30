@@ -7,6 +7,8 @@ use App\Filament\Resources\DailyProgressReportResource\Pages\EditDailyProgressRe
 use App\Filament\Resources\DailyProgressReportResource\Pages\ListDailyProgressReports;
 use App\Models\DailyProgressEntry;
 use App\Models\DailyProgressReport;
+use App\Models\ProjectProgressActivity;
+use Webkul\Project\Models\Project;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -84,6 +86,29 @@ class DailyProgressReportResource extends Resource
                 ->icon('heroicon-o-clipboard-document-list')
                 ->columns(2)
                 ->schema([
+                    Select::make('project_id')
+                        ->label('Project')
+                        ->options(fn () => Project::query()->orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()->preload()->required()->live()
+                        ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                            // Populate the selected project's configured activities once on a new report.
+                            // Preserve existing rows when editing or when the user has already entered data.
+                            if (filled($get('entries'))) {
+                                return;
+                            }
+
+                            $set('entries', ProjectProgressActivity::query()
+                                ->where('project_id', $state)
+                                ->where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
+                                ->get(['name', 'unit'])
+                                ->map(fn (ProjectProgressActivity $activity): array => [
+                                    'activity' => $activity->name,
+                                    'unit' => $activity->unit,
+                                ])
+                                ->all());
+                        }),
                     DatePicker::make('report_date')
                         ->label('Report Date')
                         ->required()
@@ -106,16 +131,16 @@ class DailyProgressReportResource extends Resource
                         ->placeholder('0+000')
                         ->helperText('Use chainage format, e.g. 0+000.')
                         ->live(onBlur: true)
-                        ->required(),
+                        ->required(fn (Get $get): bool => collect($get('entries') ?? [])->contains(fn ($entry) => ($entry['unit'] ?? null) === 'm')),
                     TextInput::make('section_end_chainage')
                         ->label('Section End CH')
                         ->placeholder('1+000')
                         ->helperText('End chainage for this work section.')
                         ->live(onBlur: true)
-                        ->required(),
+                        ->required(fn (Get $get): bool => collect($get('entries') ?? [])->contains(fn ($entry) => ($entry['unit'] ?? null) === 'm')),
                 ]),
             Section::make('Daily Activity Progress')
-                ->description('Add each activity completed today. Enter the start and end chainage for every activity; the length is calculated automatically.')
+                ->description('Configured activities for the selected project are loaded automatically. Add another row when the same activity covers a different chainage section.')
                 ->icon('heroicon-o-chart-bar')
                 ->schema([
                     Repeater::make('entries')
@@ -126,11 +151,16 @@ class DailyProgressReportResource extends Resource
                         ->schema([
                             Select::make('activity')
                                 ->label('Activity')
-                                ->options(array_combine(array_keys(DailyProgressEntry::ACTIVITIES), array_keys(DailyProgressEntry::ACTIVITIES)))
+                                ->options(fn (Get $get): array => ProjectProgressActivity::query()
+                                    ->where('project_id', $get('../../project_id'))
+                                    ->where('is_active', true)->orderBy('sort_order')->orderBy('name')
+                                    ->pluck('name', 'name')->all())
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function ($state, callable $set): void {
-                                    $set('unit', DailyProgressEntry::ACTIVITIES[$state] ?? 'm');
+                                ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                    $set('unit', ProjectProgressActivity::query()
+                                        ->where('project_id', $get('../../project_id'))
+                                        ->where('name', $state)->value('unit') ?? 'm');
                                 }),
                             TextInput::make('daily_quantity')
                                 ->label('Quantity completed today')
@@ -141,7 +171,7 @@ class DailyProgressReportResource extends Resource
                             TextInput::make('start_chainage')
                                 ->label('Start CH')
                                 ->placeholder('0+000')
-                                ->required()
+                                ->required(fn (Get $get): bool => $get('unit') === 'm')->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, Get $get): void {
                                     static::updateChainageFields($state, $get('end_chainage'), $set);
@@ -149,12 +179,13 @@ class DailyProgressReportResource extends Resource
                             TextInput::make('end_chainage')
                                 ->label('End CH')
                                 ->placeholder('0+100')
-                                ->required()
+                                ->required(fn (Get $get): bool => $get('unit') === 'm')->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, Get $get): void {
                                     static::updateChainageFields($get('start_chainage'), $state, $set);
                                 }),
                             TextInput::make('chainage_length_m')
+                                ->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->label('Calculated length (m)')
                                 ->numeric()
                                 ->readOnly()
@@ -209,16 +240,25 @@ class DailyProgressReportResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $activityColumns = [
+            TextColumn::make('activity_summary')
+                ->label('Daily Activity Quantities')
+                ->state(fn (DailyProgressReport $record): string => $record->entries
+                    ->map(fn (DailyProgressEntry $entry): string => $entry->activity.': '.$entry->daily_quantity.' '.$entry->unit)
+                    ->implode(' | '))
+                ->wrap(),
+        ];
+
         return $table
             ->columns([
+                TextColumn::make('project.name')->label('Project')->searchable()->sortable(),
                 TextColumn::make('report_date')->date()->sortable(),
                 TextColumn::make('project_route')->searchable()->sortable(),
                 TextColumn::make('section_name')->searchable(),
                 TextColumn::make('team_or_subcontractor')->searchable(),
                 TextColumn::make('entries_count')->counts('entries')->label('Activities'),
-                TextColumn::make('open_cut_completed')->label('Open Cut')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
-                TextColumn::make('fibre_installation_completed')->label('Fibre Install')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
-                TextColumn::make('fibre_splicing_completed')->label('Fibre Splicing')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
+
+                ...$activityColumns,
                 IconColumn::make('has_chainage_overlap')
                     ->label('Overlap')
                     ->boolean()
@@ -230,6 +270,7 @@ class DailyProgressReportResource extends Resource
                 TextColumn::make('created_at')->dateTime()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('project_id')->label('Project')->relationship('project', 'name')->searchable(),
                 SelectFilter::make('project_route')->options(fn () => DailyProgressReport::query()->distinct()->orderBy('project_route')->pluck('project_route', 'project_route')->all()),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()])

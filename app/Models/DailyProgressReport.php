@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Webkul\Project\Models\Project;
+use Webkul\Security\Models\User;
 use InvalidArgumentException;
 
 class DailyProgressReport extends Model
 {
     protected $fillable = [
-        'report_date', 'project_route', 'section_name', 'section_start_chainage',
+        'project_id', 'report_date', 'project_route', 'section_name', 'section_start_chainage',
         'section_end_chainage', 'section_start_chainage_m', 'section_end_chainage_m',
         'team_or_subcontractor', 'remarks', 'created_by',
     ];
@@ -48,6 +50,11 @@ class DailyProgressReport extends Model
             $report->section_start_chainage_m = $start;
             $report->section_end_chainage_m = $end;
         });
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function entries(): HasMany
@@ -88,7 +95,8 @@ class DailyProgressReport extends Model
             ->whereIn('activity', $activities)
             ->whereHas('report', fn ($query) => $query
                 ->where('project_route', $this->project_route)
-                ->where('section_name', $this->section_name))
+                ->where('section_name', $this->section_name)
+                ->when($this->project_id, fn ($query) => $query->where('project_id', $this->project_id), fn ($query) => $query->whereNull('project_id')))
             ->where('start_chainage_m', '<', $end)
             ->where('end_chainage_m', '>', $start)
             ->get(['start_chainage_m', 'end_chainage_m']);
@@ -151,7 +159,8 @@ class DailyProgressReport extends Model
                     });
                 }
             })
-            ->whereHas('report', fn ($query) => $query->where('project_route', $route)->where('section_name', $section))
+            ->whereHas('report', fn ($query) => $query->where('project_route', $route)->where('section_name', $section)
+                ->when($this->project_id, fn ($reportQuery) => $reportQuery->where('project_id', $this->project_id), fn ($reportQuery) => $reportQuery->whereNull('project_id')))
             ->exists();
     }
 }
