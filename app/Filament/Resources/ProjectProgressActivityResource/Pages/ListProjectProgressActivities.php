@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Filament\\Resources\\ProjectProgressActivityResource\\Pages;
+namespace App\Filament\Resources\ProjectProgressActivityResource\Pages;
 
-use App\\Filament\\Resources\\ProjectProgressActivityResource;
-use Filament\\Actions\\CreateAction;
-use Filament\\Resources\\Pages\\ListRecords;
+use App\Filament\Resources\ProjectProgressActivityResource;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Pages\ListRecords;
 
 class ListProjectProgressActivities extends ListRecords
 {
