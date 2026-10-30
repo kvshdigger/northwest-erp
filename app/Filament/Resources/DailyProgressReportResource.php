@@ -84,6 +84,10 @@ class DailyProgressReportResource extends Resource
                 ->icon('heroicon-o-clipboard-document-list')
                 ->columns(2)
                 ->schema([
+                    Select::make('project_id')
+                        ->label('Project')
+                        ->options(fn () => Project::query()->orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()->preload()->required()->live(),
                     DatePicker::make('report_date')
                         ->label('Report Date')
                         ->required()
@@ -126,11 +130,16 @@ class DailyProgressReportResource extends Resource
                         ->schema([
                             Select::make('activity')
                                 ->label('Activity')
-                                ->options(array_combine(array_keys(DailyProgressEntry::ACTIVITIES), array_keys(DailyProgressEntry::ACTIVITIES)))
+                                ->options(fn (Get $get): array => ProjectProgressActivity::query()
+                                    ->where('project_id', $get('../../project_id'))
+                                    ->where('is_active', true)->orderBy('sort_order')->orderBy('name')
+                                    ->pluck('name', 'name')->all())
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function ($state, callable $set): void {
-                                    $set('unit', DailyProgressEntry::ACTIVITIES[$state] ?? 'm');
+                                ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                    $set('unit', ProjectProgressActivity::query()
+                                        ->where('project_id', $get('../../project_id'))
+                                        ->where('name', $state)->value('unit') ?? 'm');
                                 }),
                             TextInput::make('daily_quantity')
                                 ->label('Quantity completed today')
@@ -209,16 +218,26 @@ class DailyProgressReportResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $activityColumns = ProjectProgressActivity::query()
+            ->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
+            ->unique('name')->map(fn (ProjectProgressActivity $activity) =>
+                TextColumn::make('activity_'.$activity->id)
+                    ->label($activity->name.' ('.$activity->unit.')')
+                    ->state(fn (DailyProgressReport $record) => $record->entries()
+                        ->where('activity', $activity->name)->sum('daily_quantity'))
+                    ->numeric()
+            )->all();
+
         return $table
             ->columns([
+                TextColumn::make('project.name')->label('Project')->searchable()->sortable(),
                 TextColumn::make('report_date')->date()->sortable(),
                 TextColumn::make('project_route')->searchable()->sortable(),
                 TextColumn::make('section_name')->searchable(),
                 TextColumn::make('team_or_subcontractor')->searchable(),
                 TextColumn::make('entries_count')->counts('entries')->label('Activities'),
-                TextColumn::make('open_cut_completed')->label('Open Cut')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
-                TextColumn::make('fibre_installation_completed')->label('Fibre Install')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
-                TextColumn::make('fibre_splicing_completed')->label('Fibre Splicing')->badge()->formatStateUsing(fn ($state): string => $state === null ? 'Set section CH' : ($state ? 'Completed' : 'In progress'))->color(fn ($state): string => $state === null ? 'gray' : ($state ? 'success' : 'warning')),
+
+                ...$activityColumns,
                 IconColumn::make('has_chainage_overlap')
                     ->label('Overlap')
                     ->boolean()
