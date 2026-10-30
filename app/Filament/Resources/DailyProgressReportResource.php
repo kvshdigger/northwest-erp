@@ -7,6 +7,8 @@ use App\Filament\Resources\DailyProgressReportResource\Pages\EditDailyProgressRe
 use App\Filament\Resources\DailyProgressReportResource\Pages\ListDailyProgressReports;
 use App\Models\DailyProgressEntry;
 use App\Models\DailyProgressReport;
+use App\Models\ProjectProgressActivity;
+use Webkul\Project\Models\Project;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
