@@ -152,7 +152,7 @@ class DailyProgressReportResource extends Resource
                             TextInput::make('start_chainage')
                                 ->label('Start CH')
                                 ->placeholder('0+000')
-                                ->required()
+                                ->required(fn (Get $get): bool => $get('unit') === 'm')->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, Get $get): void {
                                     static::updateChainageFields($state, $get('end_chainage'), $set);
@@ -160,12 +160,13 @@ class DailyProgressReportResource extends Resource
                             TextInput::make('end_chainage')
                                 ->label('End CH')
                                 ->placeholder('0+100')
-                                ->required()
+                                ->required(fn (Get $get): bool => $get('unit') === 'm')->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, Get $get): void {
                                     static::updateChainageFields($get('start_chainage'), $state, $set);
                                 }),
                             TextInput::make('chainage_length_m')
+                                ->visible(fn (Get $get): bool => $get('unit') === 'm')
                                 ->label('Calculated length (m)')
                                 ->numeric()
                                 ->readOnly()
@@ -220,15 +221,14 @@ class DailyProgressReportResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $activityColumns = ProjectProgressActivity::query()
-            ->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
-            ->unique('name')->map(fn (ProjectProgressActivity $activity) =>
-                TextColumn::make('activity_'.$activity->id)
-                    ->label($activity->name.' ('.$activity->unit.')')
-                    ->state(fn (DailyProgressReport $record) => $record->entries()
-                        ->where('activity', $activity->name)->sum('daily_quantity'))
-                    ->numeric()
-            )->all();
+        $activityColumns = [
+            TextColumn::make('activity_summary')
+                ->label('Daily Activity Quantities')
+                ->state(fn (DailyProgressReport $record): string => $record->entries
+                    ->map(fn (DailyProgressEntry $entry): string => $entry->activity.': '.$entry->daily_quantity.' '.$entry->unit)
+                    ->implode(' | '))
+                ->wrap(),
+        ];
 
         return $table
             ->columns([
@@ -251,6 +251,7 @@ class DailyProgressReportResource extends Resource
                 TextColumn::make('created_at')->dateTime()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('project_id')->label('Project')->relationship('project', 'name')->searchable(),
                 SelectFilter::make('project_route')->options(fn () => DailyProgressReport::query()->distinct()->orderBy('project_route')->pluck('project_route', 'project_route')->all()),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()])
