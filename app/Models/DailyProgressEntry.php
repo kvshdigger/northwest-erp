@@ -90,7 +90,7 @@ class DailyProgressEntry extends Model
             $entry->start_chainage_m = $start;
             $entry->end_chainage_m = $end;
             $entry->chainage_length_m = $end - $start;
-        });;
+        });
     }
 
     public function report(): BelongsTo
