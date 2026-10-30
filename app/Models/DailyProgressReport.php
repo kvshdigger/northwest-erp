@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Webkul\Project\Models\Project;
+use Webkul\Security\Models\User;
 use InvalidArgumentException;
 
 class DailyProgressReport extends Model
@@ -94,7 +95,8 @@ class DailyProgressReport extends Model
             ->whereIn('activity', $activities)
             ->whereHas('report', fn ($query) => $query
                 ->where('project_route', $this->project_route)
-                ->where('section_name', $this->section_name)\n                ->when($this->project_id, fn ($query) => $query->where('project_id', $this->project_id)))
+                ->where('section_name', $this->section_name)
+                ->when($this->project_id, fn ($query) => $query->where('project_id', $this->project_id)))
             ->where('start_chainage_m', '<', $end)
             ->where('end_chainage_m', '>', $start)
             ->get(['start_chainage_m', 'end_chainage_m']);
@@ -157,7 +159,8 @@ class DailyProgressReport extends Model
                     });
                 }
             })
-            ->whereHas('report', fn ($query) => $query->where('project_route', $route)->where('section_name', $section)\n                ->when($this->project_id, fn ($reportQuery) => $reportQuery->where('project_id', $this->project_id)))
+            ->whereHas('report', fn ($query) => $query->where('project_route', $route)->where('section_name', $section)
+                ->when($this->project_id, fn ($reportQuery) => $reportQuery->where('project_id', $this->project_id)))
             ->exists();
     }
 }
