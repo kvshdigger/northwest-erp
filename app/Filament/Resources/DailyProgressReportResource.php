@@ -84,7 +84,7 @@ class DailyProgressReportResource extends Resource
                 ->icon('heroicon-o-clipboard-document-list')
                 ->columns(2)
                 ->schema([
-                    DatePicker::make('report_date')
+                    Select::make('project_id')\n                        ->label('Project')\n                        ->options(fn () => Project::query()->orderBy('name')->pluck('name', 'id')->all())\n                        ->searchable()\n                        ->preload()\n                        ->required()\n                        ->live(),\n                    DatePicker::make('report_date')
                         ->label('Report Date')
                         ->required()
                         ->default(now())
@@ -126,11 +126,11 @@ class DailyProgressReportResource extends Resource
                         ->schema([
                             Select::make('activity')
                                 ->label('Activity')
-                                ->options(array_combine(array_keys(DailyProgressEntry::ACTIVITIES), array_keys(DailyProgressEntry::ACTIVITIES)))
+                                ->options(fn (Get $get): array => ProjectProgressActivity::query()\n                                    ->where('project_id', $get('../../project_id'))\n                                    ->where('is_active', true)\n                                    ->orderBy('sort_order')\n                                    ->orderBy('name')\n                                    ->pluck('name', 'name')\n                                    ->all())
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function ($state, callable $set): void {
-                                    $set('unit', DailyProgressEntry::ACTIVITIES[$state] ?? 'm');
+                                    $set('unit', ProjectProgressActivity::query()\n                                        ->where('project_id', $get('../../project_id'))\n                                        ->where('name', $state)\n                                        ->value('unit') ?? 'm');
                                 }),
                             TextInput::make('daily_quantity')
                                 ->label('Quantity completed today')
