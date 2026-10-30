@@ -42,7 +42,21 @@ class DailyProgressEntry extends Model
                 throw new InvalidArgumentException('Start and end chainage are required.');
             }
 
-            if (! array_key_exists((string) $entry->activity, self::ACTIVITIES)) {
+            $report = $entry->report;
+            $configuredActivity = $report?->project_id
+                ? ProjectProgressActivity::query()
+                    ->where('project_id', $report->project_id)
+                    ->where('name', $entry->activity)
+                    ->where('is_active', true)
+                    ->first()
+                : null;
+
+            // Keep legacy records and reports without a project compatible.
+            if ($report?->project_id && ! $configuredActivity) {
+                throw new InvalidArgumentException('Select an active activity configured for this project.');
+            }
+
+            if (! $report?->project_id && ! array_key_exists((string) $entry->activity, self::ACTIVITIES)) {
                 throw new InvalidArgumentException('Select a valid progress activity.');
             }
 
@@ -64,7 +78,7 @@ class DailyProgressEntry extends Model
             $entry->start_chainage_m = $start;
             $entry->end_chainage_m = $end;
             $entry->chainage_length_m = $end - $start;
-            $entry->unit = self::ACTIVITIES[$entry->activity];
+            $entry->unit = $configuredActivity?->unit ?? self::ACTIVITIES[$entry->activity];
         });
     }
 
