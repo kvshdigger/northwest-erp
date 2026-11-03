@@ -60,6 +60,12 @@ class ProgressController extends Controller
             'capabilities' => ['can_configure' => $canConfigure, 'can_submit' => $this->access->submit($request->user(), $progressProject), 'can_manage_members' => $this->access->manageMembers($request->user(), $progressProject)],
             'routes'       => ProgressRoute::query()->where('project_id', $progressProject->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'activities'   => ProgressActivityResource::collection($activities)->resolve($request),
+            'members'      => $this->access->manageMembers($request->user(), $progressProject)
+                ? ProgressMembership::query()->where('project_id', $progressProject->id)->with('user:id,name')->get()->map(fn (ProgressMembership $member): array => [
+                    'user_id' => $member->user_id, 'name' => $member->user?->name, 'can_submit' => $member->can_submit, 'can_configure' => $member->can_configure,
+                ]) : [],
+            'member_candidates' => $this->access->manageMembers($request->user(), $progressProject)
+                ? User::query()->where('is_active', true)->when($progressProject->company_id, fn ($query) => $query->whereHas('allowedCompanies', fn ($companies) => $companies->whereKey($progressProject->company_id)))->orderBy('name')->get(['id', 'name']) : [],
         ]);
     }
 
