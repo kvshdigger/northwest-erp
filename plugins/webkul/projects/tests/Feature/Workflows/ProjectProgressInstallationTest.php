@@ -13,7 +13,8 @@ it('installs project progress after core report tables without rerunning an appl
     expect(Schema::hasTable('daily_progress_reports'))->toBeTrue()
         ->and(Schema::hasTable('projects_projects'))->toBeTrue()
         ->and(Schema::hasColumn('daily_progress_reports', 'project_id'))->toBeTrue()
-        ->and(Schema::hasTable('project_progress_activities'))->toBeTrue();
+        ->and(Schema::hasTable('project_progress_activities'))->toBeTrue()
+        ->and(Schema::hasIndex('project_progress_activities', 'ppa_project_active_sort_idx'))->toBeTrue();
 
     $project = Project::factory()->create();
     $report = DailyProgressReport::query()->create([
