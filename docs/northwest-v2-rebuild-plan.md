@@ -88,3 +88,22 @@ Status: planning and audit only. No production deployment or database mutation i
 - Approved V2 implementation backlog.
 
 This file is a planning artifact, not a claim that the full audit or rebuild has been completed.
+
+## Finance and HR scope — 4 November 2026
+
+The first connected business-module milestone reuses existing ERP workflows rather than introducing a second accounting or employee database. Finance records currently have no audited project association suitable for the V2 tracker; the initial lists therefore remain explicitly company-wide. Project membership does not grant Finance or HR access.
+
+| Area | Required capability | Current V2 milestone |
+| --- | --- | --- |
+| Purchasing | Supplier orders, quotations, approvals, delivery and bill references | Confirmed purchase-order list and permitted existing ERP record/create/manage forms; quotation and approval handling stays in the original ERP |
+| Receivables | Customer invoices, due amounts, receipts and ageing | Separate invoice/customer-payment lists with original currency amounts and existing ERP actions |
+| Payables | Vendor bills, approvals and settlement references | Vendor-bill list and existing ERP actions; broader payment reporting remains pending |
+| Project finance | Budgets, cost allocation, variations, retention and progress claims | Pending explicit project mapping and inspection/approval eligibility; never infer claimable amounts from recorded progress |
+| Expenses/reporting | Receipts, reimbursements, cash flow, reconciliation and exports | Pending V2 workflows; no combined totals across currencies |
+| Employee administration | Directory, work contacts, departments and employment status | Company-scoped directory and departments with permitted original ERP forms; private identity/bank/family fields excluded from the V2 list API |
+| Leave | Requests, dates, duration, balances and approvals | Management request list and original ERP workflow; dedicated self-service/balance views pending |
+| Attendance | Site assignment, attendance, timesheets and approved overtime | Pending |
+| Payroll | Earnings, deductions, versioned statutory settings, review, payslips and payment references | Pending rule configuration and payroll validation; no hardcoded rates or automatic payouts |
+| Employee lifecycle | Contracts, permits, document expiry, onboarding/offboarding and private self-service | Pending |
+
+All lists require the installed active module and existing list/record permissions, preserve current company/ownership scopes and additionally restrict companies to those allowed for the user. Read actions are paginated and searchable. Business record edits use the original ERP forms so their existing policies and validation remain authoritative. Unavailable and restricted modules are visible as clear states, with no fabricated records or permission escalation.

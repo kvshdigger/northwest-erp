@@ -1,0 +1,44 @@
+import { test, expect } from '@playwright/test';
+
+test.skip(process.env.PROJECT_PROGRESS_E2E !== '1', 'Requires isolated seeded business preview accounts and modules.');
+test.use({ channel: process.env.PLAYWRIGHT_CHANNEL });
+
+test('browses company finance and work-only employee records without changing data', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto('/admin/v2/project-progress');
+    await page.locator('input[type=email]').fill(process.env.PROJECT_PROGRESS_EMAIL!);
+    await page.locator('input[type=password]').fill(process.env.PROJECT_PROGRESS_PASSWORD!);
+    await Promise.all([page.waitForURL(url => !url.pathname.includes('/admin/login'), { timeout: 20000 }), page.locator('input[type=password]').press('Enter')]).catch(async error => { console.log('Login page:', await page.locator('body').innerText()); throw error; });
+    await page.goto('/admin/v2/project-progress');
+    await expect(page.locator('#connectionStatus')).toContainText('Connected ·');
+    await page.getByRole('button', { name: 'Finance', exact: true }).click();
+    await expect(page.locator('#financeWorkspace')).toContainText('Company-wide');
+    await expect(page.locator('#financeWorkspace')).toContainText('DEMO-PO-001');
+    await expect(page.locator('#projectSelect')).toBeDisabled();
+    await page.getByRole('button', { name: 'Customer invoices', exact: true }).click();
+    await expect(page.locator('#financeWorkspace')).toContainText('DEMO-INV-001');
+    await expect(page.locator('#financeWorkspace')).not.toContainText('DEMO-BILL-001');
+    if (process.env.BUSINESS_FINANCE_SCREENSHOT) await page.screenshot({ path: process.env.BUSINESS_FINANCE_SCREENSHOT, fullPage: true });
+    await page.getByRole('button', { name: 'Vendor bills', exact: true }).click();
+    await expect(page.locator('#financeWorkspace')).toContainText('DEMO-BILL-001');
+    await page.getByRole('button', { name: 'Employees & HR', exact: true }).click();
+    await expect(page.locator('#peopleWorkspace')).toContainText('Demo Site Engineer');
+    await page.getByRole('textbox', { name: 'Search employee directory', exact: true }).fill('Demo Site Engineer');
+    await page.locator('#peopleWorkspace').getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page.locator('#peopleWorkspace tbody tr')).toHaveCount(1);
+    await expect(page.locator('#peopleWorkspace')).not.toContainText('Passport');
+    if (process.env.BUSINESS_HR_SCREENSHOT) await page.screenshot({ path: process.env.BUSINESS_HR_SCREENSHOT, fullPage: true });
+    const create = page.locator('#peopleWorkspace').getByRole('link', { name: 'Create record', exact: true });
+    await expect(create).toBeVisible();
+    await create.click();
+    await expect(page.getByRole('heading', { name: /Create employee/i })).toBeVisible();
+    await page.goto('/admin/v2/project-progress');
+    await expect(page.locator('#connectionStatus')).toContainText('Connected ·');
+    await page.getByRole('button', { name: 'Employees & HR', exact: true }).click();
+    await expect(page.locator('#peopleWorkspace')).toContainText('Demo Site Engineer');
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    expect(errors).toEqual([]);
+});
