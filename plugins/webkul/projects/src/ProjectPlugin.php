@@ -3,6 +3,7 @@
 namespace Webkul\Project;
 
 use Filament\Contracts\Plugin;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Webkul\PluginManager\Package;
 
@@ -27,6 +28,12 @@ class ProjectPlugin implements Plugin
         $panel
             ->when($panel->getId() == 'admin', function (Panel $panel) {
                 $panel
+                    ->navigationItems([
+                        NavigationItem::make('Project Tracker V2')
+                            ->url(fn (): string => route('admin.v2.progress-workspace.index'))
+                            ->icon('heroicon-o-table-cells')
+                            ->visible(fn (): bool => config('project-progress.enabled') && auth()->user()?->is_active),
+                    ])
                     ->discoverResources(
                         in: __DIR__.'/Filament/Resources',
                         for: 'Webkul\\Project\\Filament\\Resources'

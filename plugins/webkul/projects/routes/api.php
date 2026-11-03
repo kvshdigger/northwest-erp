@@ -8,6 +8,7 @@ use Webkul\Project\Http\Controllers\API\V1\TagController;
 use Webkul\Project\Http\Controllers\API\V1\TaskController;
 use Webkul\Project\Http\Controllers\API\V1\TaskStageController;
 use Webkul\Project\Http\Controllers\API\V2\ProgressController;
+use Webkul\Project\Http\Controllers\ProgressWorkspaceController;
 use Webkul\Project\Http\Middleware\ProgressV2Enabled;
 use Webkul\Project\Models\Project;
 use Webkul\Security\Models\Scopes\OwnershipScope;
@@ -23,21 +24,32 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
+$progressRoutes = function (): void {
+    $controller = ProgressController::class;
+    Route::get('projects', [$controller, 'projects'])->name('projects');
+    Route::prefix('projects/{progressProject}')->whereNumber('progressProject')->group(function () use ($controller): void {
+        Route::get('workspace', [$controller, 'workspace'])->name('workspace');
+        Route::post('routes', [$controller, 'storeRoute'])->name('routes.store');
+        Route::put('members', [$controller, 'upsertMember'])->name('members.upsert');
+        Route::post('activities', [$controller, 'storeDraft'])->name('activities.store');
+        Route::post('activities/preview', [$controller, 'preview'])->name('activities.preview');
+        Route::put('activities/{activity}/draft', [$controller, 'updateDraft'])->whereNumber('activity')->name('activities.draft');
+        Route::post('activities/{activity}/publish', [$controller, 'publish'])->whereNumber('activity')->name('activities.publish');
+        Route::post('reports', [$controller, 'storeReport'])->name('reports.store');
+        Route::get('reports/{report}', [$controller, 'showReport'])->whereNumber('report')->name('reports.show');
+        Route::get('tracker', [$controller, 'tracker'])->name('tracker');
+    });
+};
+
 Route::prefix('admin/api/v2/project-progress')->name('admin.api.v2.project-progress.')
-    ->middleware(['api', ProgressV2Enabled::class, 'auth:sanctum', 'throttle:60,1'])
-    ->group(function (): void {
-        $controller = ProgressController::class;
-        Route::get('projects', [$controller, 'projects'])->name('projects');
-        Route::prefix('projects/{progressProject}')->whereNumber('progressProject')->group(function () use ($controller): void {
-            Route::get('workspace', [$controller, 'workspace'])->name('workspace');
-            Route::post('routes', [$controller, 'storeRoute'])->name('routes.store');
-            Route::put('members', [$controller, 'upsertMember'])->name('members.upsert');
-            Route::post('activities', [$controller, 'storeDraft'])->name('activities.store');
-            Route::post('activities/preview', [$controller, 'preview'])->name('activities.preview');
-            Route::put('activities/{activity}/draft', [$controller, 'updateDraft'])->whereNumber('activity')->name('activities.draft');
-            Route::post('activities/{activity}/publish', [$controller, 'publish'])->whereNumber('activity')->name('activities.publish');
-            Route::post('reports', [$controller, 'storeReport'])->name('reports.store');
-            Route::get('reports/{report}', [$controller, 'showReport'])->whereNumber('report')->name('reports.show');
-            Route::get('tracker', [$controller, 'tracker'])->name('tracker');
-        });
+    ->middleware(['api', ProgressV2Enabled::class, 'auth:sanctum', 'throttle:60,1'])->group($progressRoutes);
+
+Route::prefix('admin/v2/project-progress/api')->name('admin.v2.project-progress.')
+    ->middleware(['web', ProgressV2Enabled::class, 'auth:web', 'throttle:120,1'])->group($progressRoutes);
+
+Route::prefix('admin/v2/project-progress')->name('admin.v2.progress-workspace.')
+    ->middleware(['web', ProgressV2Enabled::class, 'auth:web'])->group(function (): void {
+        Route::get('/', [ProgressWorkspaceController::class, 'index'])->name('index');
+        Route::get('files/{file}', [ProgressWorkspaceController::class, 'asset'])
+            ->where('file', '[a-zA-Z0-9_./-]+')->name('asset');
     });

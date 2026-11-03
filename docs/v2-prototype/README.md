@@ -1,4 +1,4 @@
-# Northwest ERP V2 — standalone UI prototype
+# Northwest ERP V2 — prototype and connected workspace
 
 ## How to view
 Open `index.html` in a modern browser, keeping `app.js`, `progress.js`, `theme.css` and the `assets/` directory alongside it. This is a static HTML/CSS/JavaScript prototype; it does not require npm, PHP, a database or a build command. A static development server can also serve this directory.
@@ -43,7 +43,7 @@ Open `index.html` in a modern browser, keeping `app.js`, `progress.js`, `theme.c
 Run the dependency-free domain tests from the repository root:
 
 ```sh
-node --test tests/Unit/ProgressConfiguration.test.mjs
+node --test tests/Unit/ProgressConfiguration.test.mjs tests/Unit/ProgressApi.test.mjs
 node --check docs/v2-prototype/progress.js
 node --check docs/v2-prototype/app.js
 ```
@@ -56,7 +56,17 @@ The `feature/v2-progress-persistence` branch adds an opt-in Laravel API under `/
 
 Enable `PROJECT_PROGRESS_V2_ENABLED=true` in an isolated Laravel environment after the normal ERP/Projects installation and migrations. Use Sanctum authentication. Endpoints include `GET projects`, `GET projects/{id}/workspace`, `POST projects/{id}/routes`, `PUT projects/{id}/members`, `POST projects/{id}/activities`, `PUT projects/{id}/activities/{activity}/draft`, `POST projects/{id}/activities/{activity}/publish`, `POST projects/{id}/activities/preview`, `POST projects/{id}/reports`, `GET projects/{id}/reports/{report}` and `GET projects/{id}/tracker`.
 
-The static files above **do not call this API**. The next milestone is to connect the approved UI, including project selection, modal configuration editing, mobile daily entries and tracker details. Approval workflows, claim eligibility, evidence uploads, historical recalculation and financial safeguards remain pending.
+## Connected workspace
+
+On `feature/v2-connected-workspace`, enable `PROJECT_PROGRESS_V2_ENABLED=true` in an isolated configured ERP environment, sign in through the existing ERP login and open `/admin/v2/project-progress`. A Project Tracker V2 link appears in ERP navigation when enabled. The Laravel-served page reuses these UI files, injects a same-origin API URL and CSRF token, and authenticates requests using the existing web session. No API token or password is stored by this client.
+
+Project selection, activity drafts/publication, server formula preview, Daily Site Progress, tracker totals and original entry details now use persistent server data. Managers can add project routes and assign active company members with read, submit and configuration permissions. Read-only users cannot submit or configure. The selected project and tracker column visibility are optional browser preferences; records and configuration versions live in the database.
+
+The tracker paginates complete route/date groups. Search/status filters, overview counts and CSV export apply to the currently loaded page, as stated in the workspace. A progress form retains its submission key when retried unchanged after a connection failure. Changed values start a new submission. Settings updates preserve the saved draft revision if publication fails. Refresh does not recalculate historical records.
+
+Opening these files directly or serving them on a static server still runs the clearly labelled demo. It does not connect to the ERP. The connected route remains behind the feature flag and requires the Projects plugin and migrations. Finance, HR and approvals in this UI remain labelled placeholders; approval/claim eligibility, evidence uploads, historical recalculation and financial safeguards remain pending.
+
+Browser verification uses the existing `tests/e2e-pw` tooling. Run only against an isolated environment with at least two assigned projects: set `PROJECT_PROGRESS_E2E=1`, `BASE_URL`, `PROJECT_PROGRESS_EMAIL` and `PROJECT_PROGRESS_PASSWORD`, then run `npx playwright test tests/07_project_progress/01_connectedWorkspace.spec.ts`. Optional member checks use `PROJECT_PROGRESS_MEMBER_NAME`, `PROJECT_PROGRESS_MEMBER_EMAIL` and `PROJECT_PROGRESS_MEMBER_PASSWORD`. The test creates routes/configurations/reports and changes that test member's access; use synthetic accounts. `PLAYWRIGHT_CHANNEL=chrome` can select installed Chrome. The test skips by default in the broad legacy suite.
 
 Backend verification uses `php -d memory_limit=1G vendor/bin/pest --testsuite=Unit,ProjectFeature --compact` against a dedicated disposable test database. Test bootstrap performs a fresh ERP installation; never point it at an operational database. The V2 Backend Tests workflow exercises MySQL and PostgreSQL.
 
