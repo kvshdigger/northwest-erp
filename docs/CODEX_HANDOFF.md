@@ -10,6 +10,8 @@
 ## Goal and UI
 Build a responsive Northwest ERP V2 for a Malaysian infrastructure/telecom business. Visual reference: current ERP first, Figma Make second. Use clean slate/white/blue, compact data tables, restrained icons, consistent spacing, minimal decoration; avoid generic AI-looking gradients and oversized cards. The Project Tracker is the highest-priority screen; mobile Daily Site Progress entry must be practical.
 
+Latest user direction: adopt the supplied clean, minimalist workspace screenshot as the visual style reference. Use white surfaces, thin borders, Inter typography, subtle indigo accents, consistent outline icons and project tabs. Keep Northwest's ERP navigation, compact tracker tables and mobile forms; the reference's chat/agent layout is not the ERP information architecture. The current prototype uses `theme.css` and local font/icon assets for this direction.
+
 ## Confirmed product rules
 - Project dropdown in topbar; project-scoped tracker, progress, documents and project-linked finance; company-wide employee/payroll.
 - Only authorized management can create projects or view all; other users see assigned projects. Remember selected project.
@@ -28,6 +30,11 @@ Build a responsive Northwest ERP V2 for a Malaysian infrastructure/telecom busin
 - Branch `feature/v2-ui-prototype`: static HTML/CSS/JS demo at `docs/v2-prototype/index.html`; draft PR #12.
 - Prototype supports a basic sidebar, project switcher, route/date table, custom field popup, sample-value formula preview and demo entry. **It is not browser-tested or production-ready**; finance/HR/approvals are placeholders; no backend persistence.
 - Figma Make is a React prototype with mock data, not a production API.
+
+### Development continuation
+- Draft PR #13 (`feature/v2-config-foundation`, targeting `feature/v2-ui-prototype`) repairs the prototype's JavaScript and adds separate in-memory drafts/published configurations, stable formula keys, typed input validation, safe arithmetic, per-entry snapshots, recorded/approved totals and modal details. It also carries the subsequent minimalist visual update.
+- Domain validation: `node --test tests/Unit/ProgressConfiguration.test.mjs` (13 tests); the V2 Prototype Tests workflow passed for the initial configuration commit. Desktop/mobile browser checks cover the core demo flow. Settings and entries still reset on refresh; backend authorization/persistence and historical recalculation are pending.
+- Fresh-install blocker: the legacy Pest workflow fails during installation, before tests, on MySQL and PostgreSQL. The existing `2026_10_30_000001_add_project_specific_progress_activities` migration references `projects_projects` before that plugin table exists. Resolve migration/install ordering in an isolated test database before implementing persistence. Do not run resets against production.
 
 ## Safety
 - No deletion/reset of production data; no deployment, merge to master, DNS changes or paid provisioning without separate approval.

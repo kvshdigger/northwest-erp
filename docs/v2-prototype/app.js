@@ -4,6 +4,7 @@
     const P = NorthwestProgress;
     const el = id => document.getElementById(id);
     const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    const icon = name => '<img class="icon" src="assets/' + name + '.svg" alt="" aria-hidden="true">';
     const routes = { 'YTL RAC Fiber Optic': ['PTP-Skudai', 'Gemas-Labis'], 'IBC Infrastructure': ['Site A', 'Site B'] };
     const field = (key, name, type = 'Float') => ({ key, name, type, required: true, min: null, max: null });
     function activity(id, name, unit, fields, formula = '') {
@@ -57,14 +58,23 @@
     }
     function navigate(page) {
         document.querySelectorAll('.page').forEach(node => node.classList.toggle('hidden', node.id !== page));
-        document.querySelectorAll('.nav').forEach(node => node.classList.toggle('active', node.dataset.page === page));
+        document.querySelectorAll('.nav, [data-tab-page]').forEach(node => {
+            const selected = (node.dataset.page || node.dataset.tabPage) === page;
+            node.classList.toggle('active', selected);
+            if (selected) node.setAttribute('aria-current', 'page');
+            else node.removeAttribute('aria-current');
+        });
+        el('projectContext').classList.toggle('hidden', !['dashboard', 'tracker', 'config'].includes(page));
         el('sidebar').classList.remove('open');
+        el('menuBtn').setAttribute('aria-expanded', 'false');
         render();
     }
     function render() {
         const grouped = groups();
         const cols = visibleColumns();
         const visible = filteredGroups();
+        el('breadcrumbProject').textContent = currentProject;
+        el('recordCount').textContent = visible.length + (visible.length === 1 ? ' daily report' : ' daily reports');
         el('statReports').textContent = grouped.length;
         const pending = entries.filter(entry => entry.project === currentProject && entry.status === 'Pending');
         el('statOpen').textContent = pending.length;
@@ -74,7 +84,7 @@
             const value = total(group, column);
             return '<td>' + escapeHTML(typeof value === 'number' ? formatNumber(value) + ' ' + configFor(column).unit : value || '—')
                 + (typeof value === 'number' ? '<div class="foot">Approved: ' + escapeHTML(formatNumber(total(group, column, 'Approved')) + ' ' + configFor(column).unit) + '</div>' : '') + '</td>';
-        }).join('') + '<td><span class="pill">' + status(group) + '</span></td><td><button class="link" data-detail="' + index + '">View entries</button></td></tr>').join('') || '<tr><td colspan="' + (cols.length + 4) + '">No progress records found.</td></tr>';
+        }).join('') + '<td><span class="pill ' + status(group).toLowerCase() + '">' + status(group) + '</span></td><td><button class="link" data-detail="' + index + '">View entries</button></td></tr>').join('') || '<tr><td colspan="' + (cols.length + 4) + '">No progress records found. Add progress or adjust the filters.</td></tr>';
         document.querySelectorAll('[data-detail]').forEach(button => { button.onclick = () => showDetails(visible[Number(button.dataset.detail)]); });
         el('recent').innerHTML = '<div class="tablewrap"><table><thead><tr><th>Route</th><th>Date</th><th>Entries</th><th>Status</th></tr></thead><tbody>' + grouped.slice(0, 5).map(group => '<tr><td>' + escapeHTML(group.route) + '</td><td>' + group.date + '</td><td>' + group.entries.length + '</td><td>' + status(group) + '</td></tr>').join('') + '</tbody></table></div>';
         el('columnList').innerHTML = columns[currentProject].map((column, index) => {
@@ -210,7 +220,7 @@
         publishedColumns().forEach(column => {
             const section = document.createElement('div');
             section.className = 'section';
-            section.innerHTML = '<div class="entry-head"><b>' + escapeHTML(configFor(column).name) + ' · v' + configFor(column).version + '</b><button class="btn" type="button">+ Add entry</button></div><div class="entry-list"></div>';
+            section.innerHTML = '<div class="entry-head"><b>' + escapeHTML(configFor(column).name) + ' · v' + configFor(column).version + '</b><button class="btn" type="button">' + icon('plus') + 'Add entry</button></div><div class="entry-list"></div>';
             section.querySelector('button').onclick = () => addInput(column, section.querySelector('.entry-list'));
             el('activityInputs').appendChild(section);
             addInput(column, section.querySelector('.entry-list'));
@@ -283,21 +293,24 @@
     }
 
     document.querySelectorAll('.nav').forEach(button => { button.onclick = () => navigate(button.dataset.page); });
+    document.querySelectorAll('[data-tab-page]').forEach(button => { button.onclick = () => navigate(button.dataset.tabPage); });
     el('projectSelect').onchange = event => {
         currentProject = event.target.value;
         try { localStorage.setItem('northwest-demo-project', currentProject); } catch (_) { /* Storage is optional. */ }
         el('search').value = '';
+        el('mobileSearch').value = '';
         el('statusFilter').value = '';
         render();
     };
-    el('search').oninput = render;
+    el('search').oninput = () => { el('mobileSearch').value = el('search').value; navigate('tracker'); };
+    el('mobileSearch').oninput = () => { el('search').value = el('mobileSearch').value; render(); };
     el('statusFilter').onchange = render;
     ['trackerNew', 'dashNew'].forEach(id => { el(id).onclick = openProgress; });
     el('trackerConfig').onclick = () => navigate('config');
     el('dashTracker').onclick = () => navigate('tracker');
     ['closeModal', 'cancelModal', 'closeSettings', 'cancelSettings', 'closeDetails'].forEach(id => { el(id).onclick = hideModal; });
     el('saveProgress').onclick = saveProgress;
-    el('menuBtn').onclick = () => el('sidebar').classList.toggle('open');
+    el('menuBtn').onclick = () => { el('menuBtn').setAttribute('aria-expanded', String(el('sidebar').classList.toggle('open'))); };
     el('addColumn').onclick = () => {
         columns[currentProject].push({ id: 'custom-' + Date.now(), visible: false, versions: [], draft: { name: 'New activity', unit: '', fields: [field('input_1', 'Quantity')], formula: '', outputField: 'input_1' } });
         pendingNewColumn = columns[currentProject].at(-1);
@@ -309,5 +322,5 @@
     el('saveDraft').onclick = () => saveSettings(false);
     el('publishSettings').onclick = () => saveSettings(true);
     el('exportBtn').onclick = exportCSV;
-    render();
+    navigate('tracker');
 })();

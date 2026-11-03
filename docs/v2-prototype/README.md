@@ -1,14 +1,17 @@
 # Northwest ERP V2 — standalone UI prototype
 
 ## How to view
-Open `index.html` in a modern browser, keeping `app.js` and `progress.js` alongside it. This is a static HTML/CSS/JavaScript prototype; it does not require npm, PHP, a database or a build command. A static development server can also serve this directory.
+Open `index.html` in a modern browser, keeping `app.js`, `progress.js`, `theme.css` and the `assets/` directory alongside it. This is a static HTML/CSS/JavaScript prototype; it does not require npm, PHP, a database or a build command. A static development server can also serve this directory.
 
 ## UI design direction
+- Follow the user's supplied minimalist workspace reference: white surfaces, thin dividers, Inter typography, restrained indigo actions, outline icons and underlined project tabs. Adapt the style to ERP tables and site-entry forms.
 - Preserve the legacy ERP's practical sidebar/navigation and dense business tables.
 - Refine spacing, typography, borders, buttons and hierarchy without decorative gradients or excessive dashboard cards.
-- Use restrained slate, white and corporate blue.
+- Use restrained slate, white and indigo; keep status colors subtle.
 - Use Figma Make as a visual and interaction reference, not as a backend.
 - Make the Daily Site Progress form usable on mobile.
+
+`theme.css` contains the shared visual tokens and responsive styles. Icons are locally bundled [Tabler Icons](https://github.com/tabler/tabler-icons) v3.46.0 (MIT); the Inter Latin variable font is reused from the repository's Filament assets. License notices are in `assets/tabler-LICENSE` and `assets/inter-LICENSE`. The demo makes no runtime font or icon CDN requests.
 
 ## Implemented in this prototype
 - Dashboard with demo project metrics.
