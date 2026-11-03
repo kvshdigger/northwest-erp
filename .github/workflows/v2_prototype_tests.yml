@@ -1,0 +1,34 @@
+name: V2 Prototype Tests
+
+on:
+  pull_request:
+    paths:
+      - 'docs/v2-prototype/**'
+      - 'tests/Unit/ProgressConfiguration.test.mjs'
+      - '.github/workflows/v2_prototype_tests.yml'
+  push:
+    branches:
+      - 'feature/v2-*'
+    paths:
+      - 'docs/v2-prototype/**'
+      - 'tests/Unit/ProgressConfiguration.test.mjs'
+      - '.github/workflows/v2_prototype_tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check prototype scripts
+        run: |
+          node --check docs/v2-prototype/progress.js
+          node --check docs/v2-prototype/app.js
+      - name: Test configuration, formulas and daily aggregation
+        run: node --test tests/Unit/ProgressConfiguration.test.mjs
