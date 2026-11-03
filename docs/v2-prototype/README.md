@@ -50,12 +50,14 @@ node --check docs/v2-prototype/app.js
 
 These cover formula parsing, datatypes, limits, draft isolation, published versions, historical snapshots, project/route/date grouping and recorded/approved aggregation. They do not establish backend authorization or persistence. Browser validation is still required for each UI change.
 
-## Next implementation steps
-1. Review the UI with the user and lock the visual system.
-2. Audit legacy database and Figma source completely.
-3. Implement the V2 API and domain schema in an isolated environment.
-4. Implement Project Tracker data persistence and calculations with tests.
-5. Build remaining modules and rehearse migration.
-6. Seek explicit production cutover approval.
+## Backend continuation (separate from this static demo)
+
+The `feature/v2-progress-persistence` branch adds an opt-in Laravel API under `/admin/api/v2/project-progress`. It persists project memberships/routes, draft and published activity configurations, daily entries and audit events. It validates calculations on the server and rejects stale revisions and duplicate submission keys with different payloads. No input title or chainage field is mandatory.
+
+Enable `PROJECT_PROGRESS_V2_ENABLED=true` in an isolated Laravel environment after the normal ERP/Projects installation and migrations. Use Sanctum authentication. Endpoints include `GET projects`, `GET projects/{id}/workspace`, `POST projects/{id}/routes`, `PUT projects/{id}/members`, `POST projects/{id}/activities`, `PUT projects/{id}/activities/{activity}/draft`, `POST projects/{id}/activities/{activity}/publish`, `POST projects/{id}/activities/preview`, `POST projects/{id}/reports`, `GET projects/{id}/reports/{report}` and `GET projects/{id}/tracker`.
+
+The static files above **do not call this API**. The next milestone is to connect the approved UI, including project selection, modal configuration editing, mobile daily entries and tracker details. Approval workflows, claim eligibility, evidence uploads, historical recalculation and financial safeguards remain pending.
+
+Backend verification uses `php -d memory_limit=1G vendor/bin/pest --testsuite=Unit,ProjectFeature --compact` against a dedicated disposable test database. Test bootstrap performs a fresh ERP installation; never point it at an operational database. The V2 Backend Tests workflow exercises MySQL and PostgreSQL.
 
 This prototype intentionally makes **no production changes**.

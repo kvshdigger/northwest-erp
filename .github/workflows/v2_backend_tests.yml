@@ -1,0 +1,76 @@
+name: V2 Backend Tests
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/webkul/projects/**'
+      - 'database/migrations/**'
+      - 'config/project-progress.php'
+      - 'tests/Unit/**'
+      - 'phpunit.xml'
+      - '.github/workflows/v2_backend_tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  project-progress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [mysql, pgsql]
+        include:
+          - database: mysql
+            image: mysql:8.0
+            port: 3306
+            username: root
+            health: mysqladmin ping -h localhost -proot
+          - database: pgsql
+            image: postgres:16
+            port: 5432
+            username: postgres
+            health: pg_isready -U postgres
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: northwest_v2_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: northwest_v2_test
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        options: >-
+          --health-cmd="${{ matrix.health }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ matrix.port }}
+      DB_DATABASE: northwest_v2_test
+      DB_USERNAME: ${{ matrix.username }}
+      DB_PASSWORD: root
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, fileinfo, gd, intl, mbstring, pdo_mysql, pdo_pgsql, zip
+          tools: composer:v2
+      - name: Install locked dependencies
+        run: composer install --no-interaction --prefer-dist --no-scripts
+      - name: Prepare isolated test environment
+        run: cp .env.example .env
+      - name: Run project module and unit tests
+        run: php -d memory_limit=1G vendor/bin/pest --testsuite=Unit,ProjectFeature --compact
