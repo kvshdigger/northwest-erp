@@ -302,3 +302,38 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
     .settings-footer { gap: 8px; }
     .settings-footer .btn { font-size: 11px; padding-left: 10px; padding-right: 10px; }
 }
+
+.module-intro { display: flex; align-items: flex-start; gap: 12px; padding: 16px; margin-bottom: 22px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.module-intro p { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0; }
+.scope-badge { display: inline-block; white-space: nowrap; color: #4f4495; background: #f0eefb; padding: 5px 8px; border-radius: 5px; font-size: 10px; }
+.module-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.module-search { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.module-search .field { flex: 1; max-width: 400px; min-width: 180px; }
+.module-records .heading { margin-bottom: 18px; }
+.module-records h2 { margin-bottom: 6px; font-size: 16px; }
+.module-records .muted { margin: 0; }
+.module-empty { padding: 32px 20px; background: var(--surface); border: 1px dashed #dfe2eb; border-radius: 8px; text-align: center; }
+.module-empty h3 { font-size: 14px; }
+.module-empty p { margin: 0 auto; max-width: 570px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.module-pagination { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 16px; color: var(--muted); font-size: 11px; }
+.module-pagination span { margin-right: auto; }
+.business-table { max-height: 65vh; }
+.business-table th { position: sticky; top: 0; z-index: 1; }
+.business-table td { min-width: 120px; max-width: 260px; white-space: normal; overflow-wrap: anywhere; }
+.module-capabilities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.module-capabilities article { padding: 20px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.module-capabilities h3 { margin: 12px 0 8px; font-size: 14px; }
+.module-capabilities p { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 0; }
+.scope-badge.planned { color: #6b7487; background: #f0f1f5; }
+@media (max-width: 600px) {
+    .module-intro { flex-direction: column; }
+    .module-tabs { gap: 7px; }
+    .module-tabs .btn { flex: 1 1 40%; }
+    .module-capabilities { grid-template-columns: 1fr; }
+    .module-search .field { min-width: 100%; max-width: none; }
+    .module-search .btn { flex: 1; }
+}
+.company-context { margin-right: auto; }
+.company-context span, .company-context strong { display: block; }
+.company-context span { color: var(--muted); font-size: 10px; margin-bottom: 5px; }
+.company-context strong { font-size: 13px; font-weight: 550; }

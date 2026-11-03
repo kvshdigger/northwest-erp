@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'plugins/webkul/projects/**'
+      - 'app/Services/BusinessWorkspace.php'
+      - 'app/Http/Controllers/BusinessWorkspaceController.php'
+      - 'app/Http/Requests/BusinessRecordsRequest.php'
       - 'database/migrations/**'
       - 'config/project-progress.php'
       - 'tests/Unit/**'

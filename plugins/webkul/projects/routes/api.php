@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BusinessWorkspaceController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
 use Webkul\Project\Http\Controllers\API\V1\ProjectController;
@@ -25,6 +26,8 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    Route::get('modules/{module}', [BusinessWorkspaceController::class, 'catalog'])->whereIn('module', ['finance', 'people'])->name('modules.catalog');
+    Route::get('modules/{module}/{section}', [BusinessWorkspaceController::class, 'records'])->whereIn('module', ['finance', 'people'])->name('modules.records');
     $controller = ProgressController::class;
     Route::get('projects', [$controller, 'projects'])->name('projects');
     Route::prefix('projects/{progressProject}')->whereNumber('progressProject')->group(function () use ($controller): void {

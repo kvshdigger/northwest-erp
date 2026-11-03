@@ -4,6 +4,7 @@
     const P = NorthwestProgress;
     const apiBase = document.querySelector('meta[name="progress-api"]')?.content;
     const api = apiBase ? new NorthwestProgressApi(apiBase, document.querySelector('meta[name="csrf-token"]').content) : null;
+    const business = api ? new NorthwestBusinessModules(api) : null;
     let workspace = null, projectRows = [], serverGroups = [], trackerMeta = { page: 1, total: 0, per_page: 30 };
     let busy = false, loadSequence = 0, reportAttempt = null;
     const projectId = () => currentProject;
@@ -82,6 +83,16 @@
         el('sidebar').classList.remove('open');
         el('menuBtn').setAttribute('aria-expanded', 'false');
         render();
+        if (api) {
+            const companyWide = ['finance', 'people'].includes(page);
+            el('liveControls').classList.toggle('hidden', companyWide);
+            el('projectSelect').disabled = companyWide;
+            document.querySelector('.project-picker').classList.toggle('hidden', companyWide);
+            document.querySelector('.global-search').classList.toggle('hidden', companyWide);
+            el('businessContext').classList.toggle('hidden', !companyWide);
+            el('businessContextTitle').textContent = page === 'finance' ? 'Finance' : 'Employees & HR';
+            if (companyWide) business.open(page);
+        }
     }
     function render() {
         const grouped = groups();
