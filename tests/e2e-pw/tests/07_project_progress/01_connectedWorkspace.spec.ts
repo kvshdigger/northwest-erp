@@ -17,6 +17,7 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     const csrfFailure = await page.request.post('/admin/v2/project-progress/api/projects/' + project + '/routes', { data: { name: 'Rejected without CSRF' } });
     expect(csrfFailure.status()).toBe(419);
     const suffix = Date.now().toString();
+    await page.getByText('Project setup', { exact: true }).click();
     await page.getByRole('button', { name: 'Add route', exact: true }).click();
     await page.locator('#setupRoute').fill('Browser route ' + suffix);
     await page.locator('#saveSetup').click();
@@ -34,6 +35,7 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     const row = page.locator('.config-row').filter({ hasText: 'Browser measurement ' + suffix });
     await expect(row).toContainText('DRAFT');
     await row.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.locator('#publishSettings')).toBeInViewport();
     await page.locator('[data-sample]').fill('12.5');
     await page.locator('#testFormula').click();
     await expect(page.locator('#formulaResult')).toContainText('12.500000');
@@ -76,6 +78,7 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     await page.locator('#projectSelect').selectOption(project);
     await expect(page.locator('#trackerBody')).toContainText('Browser route ' + suffix);
     if (process.env.PROJECT_PROGRESS_MEMBER_NAME) {
+        await page.getByText('Project setup', { exact: true }).click();
         await page.locator('#memberSetup').click();
         await page.locator('#setupUser').selectOption({ label: process.env.PROJECT_PROGRESS_MEMBER_NAME });
         await page.locator('#setupSubmit').uncheck();
@@ -103,6 +106,8 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#trackerNew').click();
     await expect(page.locator('#modalTitle')).toBeVisible();
+    await expect(page.locator('#saveProgress')).toBeInViewport();
+    await expect(page.locator('body')).toHaveClass(/modal-open/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: process.env.PROJECT_PROGRESS_SCREENSHOT || 'test-results/v2-connected-mobile.png', fullPage: true });
     await page.locator('#cancelModal').click();

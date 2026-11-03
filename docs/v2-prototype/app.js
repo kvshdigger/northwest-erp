@@ -91,10 +91,10 @@
         el('recordCount').textContent = visible.length + ' daily reports' + (api ? ' on this page · ' + trackerMeta.total + ' total' : '');
         el('statReports').textContent = grouped.length;
         const pending = entries.filter(entry => entry.project === currentProject && entry.status === 'Pending');
-        el('statOpen').textContent = api ? '—' : pending.length;
-        el('statPendingReports').textContent = grouped.filter(group => api ? group.status === 'pending' : group.entries.some(entry => entry.status === 'Pending')).length;
-        el('trackerHead').innerHTML = '<tr><th>Route</th><th>Progress date</th>' + cols.map(column => '<th>' + escapeHTML(configFor(column).name) + '</th>').join('') + '<th>Status</th><th>Details</th></tr>';
-        el('trackerBody').innerHTML = visible.map((group, index) => '<tr><td><b>' + escapeHTML(group.route) + '</b></td><td>' + group.date + '</td>' + cols.map(column => {
+        el('statOpen').textContent = api ? publishedColumns().length : pending.length;
+        el('statPendingReports').textContent = api ? grouped.reduce((sum, group) => sum + group.entry_count, 0) : grouped.filter(group => group.entries.some(entry => entry.status === 'Pending')).length;
+        el('trackerHead').innerHTML = '<tr><th>Route</th><th>Progress date</th>' + cols.map(column => '<th scope="col" title="' + escapeHTML(configFor(column).name) + '">' + escapeHTML(configFor(column).name) + '</th>').join('') + '<th>Status</th><th>Details</th></tr>';
+        el('trackerBody').innerHTML = visible.map((group, index) => '<tr><td title="' + escapeHTML(group.route) + '"><b>' + escapeHTML(group.route) + '</b></td><td>' + group.date + '</td>' + cols.map(column => {
             const value = total(group, column);
             return '<td>' + escapeHTML(api ? value === '—' ? value : value + ' ' + configFor(column).unit : typeof value === 'number' ? formatNumber(value) + ' ' + configFor(column).unit : value || '—')
                 + ((typeof value === 'number' || (api && typeof group.activities.find(item => String(item.activity_id) === column.id)?.recorded === 'string')) ? '<div class="foot">Approved: ' + escapeHTML((api ? total(group, column, 'Approved') : formatNumber(total(group, column, 'Approved'))) + ' ' + configFor(column).unit) + '</div>' : '') + '</td>';
@@ -119,6 +119,7 @@
         returnFocus = document.activeElement;
         activeModal = id;
         el(id).classList.remove('hidden');
+        document.body.classList.add('modal-open');
         document.querySelector('.app').inert = true;
         el(id).querySelector('input, button, select')?.focus();
     }
@@ -126,6 +127,7 @@
         if (busy) return;
         el(activeModal).classList.add('hidden');
         activeModal = null;
+        document.body.classList.remove('modal-open');
         document.querySelector('.app').inert = false;
         if (pendingNewColumn) {
             columns[currentProject] = columns[currentProject].filter(column => column !== pendingNewColumn);
@@ -387,6 +389,7 @@
     el('exportBtn').onclick = exportCSV;
     function connectionError(error) {
         el('connectionStatus').textContent = error.message;
+        el('connectionStatus').classList.toggle('connection-error', !error.loading);
         el('connectionStatus').classList.remove('hidden');
     }
     let disabledModalControls = [];
@@ -415,7 +418,7 @@
         render();
         applyCapabilities();
         if (!selected) { connectionError(Error('No projects assigned. Ask your project manager to assign access.')); return; }
-        connectionError(Error('Loading project data…'));
+        connectionError(Object.assign(Error('Loading project data…'), { loading: true }));
         try {
             const [loaded, tracker] = await Promise.all([api.project(selected, 'workspace'), api.project(selected, 'tracker?page=' + page)]);
             if (sequence !== loadSequence) return;
@@ -429,7 +432,8 @@
             trackerMeta = tracker.meta;
             render();
             applyCapabilities();
-            el('connectionStatus').textContent = 'Connected · Changes are saved to this ERP environment. Search, status filters, overview counts and CSV apply to the loaded tracker page.';
+            el('connectionStatus').textContent = 'Connected · Project data saved to ERP';
+            el('connectionStatus').classList.remove('connection-error');
             el('pageLabel').textContent = 'Page ' + trackerMeta.page + ' of ' + Math.max(1, Math.ceil(trackerMeta.total / trackerMeta.per_page));
             el('previousPage').disabled = trackerMeta.page <= 1;
             el('nextPage').disabled = trackerMeta.page * trackerMeta.per_page >= trackerMeta.total;
@@ -445,6 +449,7 @@
     let setupKind = '';
     function openSetup(kind) {
         setupKind = kind;
+        el('projectTools').open = false;
         el('setupError').classList.add('hidden');
         el('setupTitle').textContent = kind === 'route' ? 'Add project route' : 'Project member access';
         el('setupBody').innerHTML = kind === 'route' ? '<label class="field">Route name<input class="input" id="setupRoute" maxlength="120"></label>'
@@ -486,6 +491,12 @@
         document.querySelector('#detailsBackdrop .notice').textContent = 'Original recorded inputs, configuration version and result. Claim eligibility is not yet implemented.';
         document.querySelector('#dashboard .stat .number').textContent = '—';
         document.querySelector('#dashboard .stat .label').textContent = 'Assigned projects';
+        const cards = document.querySelectorAll('#dashboard .stat');
+        cards[1].querySelector('.label').textContent = 'Published activities';
+        cards[2].querySelector('.label').textContent = 'Daily reports';
+        cards[2].querySelector('.muted').textContent = 'Loaded tracker page';
+        cards[3].querySelector('.label').textContent = 'Activity entries';
+        cards[3].querySelector('.muted').textContent = 'Loaded tracker page';
         el('search').placeholder = 'Search this tracker page';
         el('mobileSearch').placeholder = 'Search this tracker page';
         el('team').value = '';
