@@ -107,3 +107,12 @@ The first connected business-module milestone reuses existing ERP workflows rath
 | Employee lifecycle | Contracts, permits, document expiry, onboarding/offboarding and private self-service | Pending |
 
 All lists require the installed active module and existing list/record permissions, preserve current company/ownership scopes and additionally restrict companies to those allowed for the user. Read actions are paginated and searchable. Business record edits use the original ERP forms so their existing policies and validation remain authoritative. Unavailable and restricted modules are visible as clear states, with no fabricated records or permission escalation.
+
+
+## Native V2 employee and department milestone
+
+`feature/v2-native-hr` continues the business-module branch with employee profiles, create/edit forms and department create/edit forms in responsive V2 popups. It reuses the installed Employee/Department models, policies and contact synchronization. Forms cover work, organisation, personal and employment-document reference fields; uploads, bank details, account linking, payroll and company transfers are outside this milestone. Private profile fields require the existing record-view permission and are not added to directory responses.
+
+Writes validate company-scoped references, reject hierarchy cycles, detect stale edits and preserve a create request key for safe retries. An encrypted, append-only `v2_business_events` audit receipt is saved in the same transaction; the new root migration must be rehearsed before any operational rollout. Employee update ownership now resolves the coach's linked user rather than comparing employee IDs to user IDs, including existing group scope. No global permission grants are required.
+
+Finance and leave still use existing ERP forms; native leave approvals and native Finance workflows remain pending. The opt-in `tests/09_native_hr/01_nativeHr.spec.ts` creates and edits synthetic records, checks reload persistence and mobile layout; use an isolated preview only. Validation: 150 backend tests (517 assertions), 24 JavaScript tests, and the native HR Chrome workflow passed locally. No production migration, deployment or merge was performed.
