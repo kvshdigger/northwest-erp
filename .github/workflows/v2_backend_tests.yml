@@ -4,7 +4,12 @@ on:
   pull_request:
     paths:
       - 'plugins/webkul/projects/**'
+      - 'plugins/webkul/employees/src/Policies/EmployeePolicy.php'
       - 'app/Services/BusinessWorkspace.php'
+      - 'app/Services/NativeHr.php'
+      - 'app/Http/Controllers/NativeHrController.php'
+      - 'app/Http/Requests/NativeHrRequest.php'
+      - 'app/Models/BusinessEvent.php'
       - 'app/Http/Controllers/BusinessWorkspaceController.php'
       - 'app/Http/Requests/BusinessRecordsRequest.php'
       - 'database/migrations/**'

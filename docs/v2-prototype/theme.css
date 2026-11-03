@@ -337,3 +337,14 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
 .company-context span, .company-context strong { display: block; }
 .company-context span { color: var(--muted); font-size: 10px; margin-bottom: 5px; }
 .company-context strong { font-size: 13px; font-weight: 550; }
+.hr-modal { width: min(880px, 100%); }
+.hr-summary { margin-bottom: 20px; }
+.hr-section { border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 0 0 20px; min-width: 0; }
+.hr-section legend { font-weight: 600; font-size: 13px; padding: 0 8px; }
+.hr-check { align-self: center; flex-direction: row; align-items: center; justify-content: space-between; min-height: 44px; }
+.hr-form .input[readonly] { background: var(--surface); }
+.hr-modal .modal-actions { bottom: -26px; }
+@media (max-width: 600px) {
+    .hr-section { padding: 14px; }
+    .hr-modal .modal-actions { bottom: -20px; }
+}

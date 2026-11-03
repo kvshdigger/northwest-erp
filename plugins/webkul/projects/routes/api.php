@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BusinessWorkspaceController;
+use App\Http\Controllers\NativeHrController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
 use Webkul\Project\Http\Controllers\API\V1\ProjectController;
@@ -26,6 +27,13 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    Route::prefix('hr/{kind}')->whereIn('kind', ['employees', 'departments'])->group(function (): void {
+        $hr = NativeHrController::class;
+        Route::get('form', [$hr, 'form'])->name('hr.form');
+        Route::post('/', [$hr, 'store'])->name('hr.store');
+        Route::get('{record}', [$hr, 'show'])->whereNumber('record')->name('hr.show');
+        Route::put('{record}', [$hr, 'update'])->whereNumber('record')->name('hr.update');
+    });
     Route::get('modules/{module}', [BusinessWorkspaceController::class, 'catalog'])->whereIn('module', ['finance', 'people'])->name('modules.catalog');
     Route::get('modules/{module}/{section}', [BusinessWorkspaceController::class, 'records'])->whereIn('module', ['finance', 'people'])->name('modules.records');
     $controller = ProgressController::class;

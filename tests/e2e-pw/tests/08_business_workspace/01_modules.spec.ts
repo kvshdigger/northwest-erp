@@ -30,10 +30,12 @@ test('browses company finance and work-only employee records without changing da
     await expect(page.locator('#peopleWorkspace tbody tr')).toHaveCount(1);
     await expect(page.locator('#peopleWorkspace')).not.toContainText('Passport');
     if (process.env.BUSINESS_HR_SCREENSHOT) await page.screenshot({ path: process.env.BUSINESS_HR_SCREENSHOT, fullPage: true });
-    const create = page.locator('#peopleWorkspace').getByRole('link', { name: 'Create record', exact: true });
+    const create = page.locator('#peopleWorkspace').getByRole('button', { name: 'Create employee', exact: true });
     await expect(create).toBeVisible();
     await create.click();
-    await expect(page.getByRole('heading', { name: /Create employee/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New employee profile', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/admin\/v2\/project-progress/);
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.goto('/admin/v2/project-progress');
     await expect(page.locator('#connectionStatus')).toContainText('Connected ·');
     await page.getByRole('button', { name: 'Employees & HR', exact: true }).click();
