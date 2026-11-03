@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\DailyProgressEntry;
-use InvalidArgumentException;
 
 it('converts standard chainage notation to metres', function (string $chainage, float $expected): void {
     expect(DailyProgressEntry::parseChainage($chainage))->toBe($expected);

@@ -28,13 +28,19 @@ Latest user direction: adopt the supplied clean, minimalist workspace screenshot
 - Existing production ERP is Laravel/Aureus-based, on Railway. Production is not to be modified.
 - Branch `planning/northwest-v2-rebuild`: migration plan; draft PR #11.
 - Branch `feature/v2-ui-prototype`: static HTML/CSS/JS demo at `docs/v2-prototype/index.html`; draft PR #12.
-- Prototype supports a basic sidebar, project switcher, route/date table, custom field popup, sample-value formula preview and demo entry. **It is not browser-tested or production-ready**; finance/HR/approvals are placeholders; no backend persistence.
+- Prototype supports a basic sidebar, project switcher, route/date table, custom field popup, sample-value formula preview and demo entry. **It is not production-ready**; finance/HR/approvals are placeholders; no backend persistence.
 - Figma Make is a React prototype with mock data, not a production API.
 
 ### Development continuation
 - Draft PR #13 (`feature/v2-config-foundation`, targeting `feature/v2-ui-prototype`) repairs the prototype's JavaScript and adds separate in-memory drafts/published configurations, stable formula keys, typed input validation, safe arithmetic, per-entry snapshots, recorded/approved totals and modal details. It also carries the subsequent minimalist visual update.
 - Domain validation: `node --test tests/Unit/ProgressConfiguration.test.mjs` (13 tests); the V2 Prototype Tests workflow passed for the initial configuration commit. Desktop/mobile browser checks cover the core demo flow. Settings and entries still reset on refresh; backend authorization/persistence and historical recalculation are pending.
-- Fresh-install blocker: the legacy Pest workflow fails during installation, before tests, on MySQL and PostgreSQL. The existing `2026_10_30_000001_add_project_specific_progress_activities` migration references `projects_projects` before that plugin table exists. Resolve migration/install ordering in an isolated test database before implementing persistence. Do not run resets against production.
+- Backend continuation branch `feature/v2-progress-persistence` is stacked on #13. The project-specific legacy migration now runs with the Projects plugin, after its project table exists; its migration name is preserved for existing installations.
+- New opt-in V2 API persists project routes, memberships, activity drafts, immutable published versions, report inputs/results and audit events in separate tables. There is no legacy-data import or production migration in this milestone.
+- Access is limited to assigned project managers/members and explicitly granted global permissions within allowed companies. Configuration editors and submission permissions are separate; membership management requires a manager or explicit management permission.
+- Server-side formulas use bounded arithmetic parsing and exact decimal/rational calculation. Reports are atomic and idempotent; stale configuration versions and edit revisions are rejected. Tracker pagination preserves whole route/date groups and separates recorded/approved totals. Claimable remains null pending approval workflows.
+- Enable `PROJECT_PROGRESS_V2_ENABLED=true` only in an isolated configured Laravel environment. Endpoints are under `/admin/api/v2/project-progress`; Sanctum authentication is required. The static prototype is still demo-only and does not call these APIs.
+- Local verification: 126 Unit/ProjectFeature tests (382 assertions) passed against a private PostgreSQL test database; a new CI workflow covers MySQL and PostgreSQL. Next milestone: connect the approved mobile-friendly UI to authenticated APIs, preserving modal Column Settings and arbitrary input titles.
+- Still pending: API-connected frontend, approval/inspection workflows, audited historical recalculation and impact preview, financial safeguards, evidence uploads and broader module rebuilds.
 
 ## Safety
 - No deletion/reset of production data; no deployment, merge to master, DNS changes or paid provisioning without separate approval.

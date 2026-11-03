@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->unique(['project_id', 'name']);
-            $table->index(['project_id', 'is_active', 'sort_order']);
+            $table->index(['project_id', 'is_active', 'sort_order'], 'ppa_project_active_sort_idx');
         });
     }
 
