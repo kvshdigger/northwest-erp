@@ -29,11 +29,13 @@ Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope
 
 $progressRoutes = function (): void {
     $operations = HrWorkflowController::class;
+    Route::post('hr-workflows/automatic/preview', [$operations, 'automaticPreview'])->name('automatic.preview');
+    Route::post('hr-workflows/automatic', [$operations, 'automaticStore'])->name('automatic.store');
     Route::put('hr-workflows/self-service/profile', [$operations, 'selfProfile']);
     Route::get('hr-workflows/self-service', [$operations, 'selfService']);
     Route::post('hr-workflows/self-service/leave', [$operations, 'selfLeave']);
     Route::get('hr-workflows/payslip/{record}', [$operations, 'payslip'])->whereNumber('record');
-    Route::prefix('hr-workflows/{kind}')->whereIn('kind', ['attendance', 'payroll', 'payroll-rules', 'documents', 'checklists', 'expenses'])->group(function () use ($operations): void {
+    Route::prefix('hr-workflows/{kind}')->whereIn('kind', ['attendance', 'payroll', 'payroll-rules', 'documents', 'checklists', 'expenses', 'compensation'])->group(function () use ($operations): void {
         Route::get('form', [$operations, 'form']);
         Route::get('/', [$operations, 'index']);
         Route::post('/', [$operations, 'store']);

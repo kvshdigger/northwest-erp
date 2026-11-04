@@ -16,7 +16,7 @@ class HrWorkflowRequest extends FormRequest
     public function rules(): array
     {
         if ($this->isMethod('GET')) {
-            return ['page' => ['nullable', 'integer', 'min:1', 'max:100000'], 'self' => ['nullable', 'boolean'], 'expiry' => ['nullable', Rule::in(['all', 'due', 'expired'])]];
+            return ['employee_id' => ['nullable', 'integer', 'min:1'], 'page' => ['nullable', 'integer', 'min:1', 'max:100000'], 'self' => ['nullable', 'boolean'], 'expiry' => ['nullable', Rule::in(['all', 'due', 'expired'])]];
         }
         if ($this->route('record')) {
             return ['action' => ['required', Rule::in(['approve', 'reject', 'submit', 'complete', 'reopen', 'withdraw'])], 'revision' => ['required', 'integer', 'min:1'], 'reason' => ['required', 'string', 'max:1000'], 'item' => ['nullable', 'integer', 'min:0', 'max:49']];
@@ -33,6 +33,8 @@ class HrWorkflowRequest extends FormRequest
                 'date'                    => ['date_format:Y-m-d'],
                 'datetime-local'          => ['date_format:Y-m-d\TH:i'],
                 'checkbox'                => ['accepted'],
+                'choice'                  => ['string', Rule::in(array_keys($field['choices']))],
+                'allowances'              => ['array', 'max:30'],
                 'components', 'checklist' => ['array', 'min:1', 'max:50'],
                 default                   => ['string', 'max:1000'],
             }];
@@ -47,6 +49,22 @@ class HrWorkflowRequest extends FormRequest
         }
         if ($this->route('kind') === 'payroll') {
             $rules['values.components'] = ['nullable', 'array', 'max:50'];
+        }
+        if ($this->route('kind') === 'compensation') {
+            foreach (['opening_month'] as $field) {
+                $rules['values.'.$field] = ['required', 'integer', 'min:0', 'max:11'];
+            }
+            $rules['values.allowances'] = ['nullable', 'array', 'max:30'];
+            $rules['values.allowances.*'] = ['required', 'array:label,amount,prorate,epf,socso,eis,taxable,classification'];
+            $rules['values.allowances.*.label'] = ['required', 'string', 'max:100', 'distinct'];
+            $rules['values.allowances.*.amount'] = ['required', 'numeric', 'min:0', 'max:1000000', 'decimal:0,2'];
+            $rules['values.allowances.*.classification'] = ['required', 'string', 'max:500'];
+            foreach (['prorate', 'epf', 'socso', 'eis', 'taxable'] as $flag) {
+                $rules['values.allowances.*.'.$flag] = ['required', 'boolean'];
+            }
+            $rules['values.date_of_birth'][] = 'before:today';
+            $rules['values.employment_end'][] = 'after_or_equal:values.employment_start';
+            $rules['values.effective_to'][] = 'after_or_equal:values.effective_from';
         }
         if ($this->route('kind') === 'checklists') {
             $rules['values.items.*'] = ['required', 'string', 'max:200', 'distinct'];

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AutomaticPayrollRequest;
 use App\Http\Requests\HrWorkflowRequest;
 use App\Http\Requests\SelfLeaveRequest;
 use App\Http\Requests\SelfProfileRequest;
 use App\Models\BusinessEvent;
+use App\Services\AutomaticPayroll;
 use App\Services\HrWorkflows;
 use App\Services\NativeHr;
 use App\Services\NativeLeave;
@@ -27,12 +29,35 @@ class HrWorkflowController extends Controller
 
     public function form(Request $request, string $kind): JsonResponse
     {
-        return response()->json($this->hr->form($request->user(), $kind, $request->boolean('self')))->header('Cache-Control', 'no-store');
+        $form = $this->hr->form($request->user(), $kind, $request->boolean('self'));
+        if ($kind === 'compensation' && $request->integer('employee_id')) {
+            abort_unless($this->hr->manager($request->user(), 'payroll'), 403);
+            $employee = Employee::query()->whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->findOrFail($request->integer('employee_id'));
+            $form['defaults'] = [...$form['defaults'], 'company_id' => $employee->company_id, 'employee_id' => $employee->id, 'date_of_birth' => $employee->birthday ? substr((string) $employee->birthday, 0, 10) : null];
+        }
+
+        return response()->json($form)->header('Cache-Control', 'no-store');
+    }
+
+    public function automaticPreview(AutomaticPayrollRequest $request): JsonResponse
+    {
+        return response()->json(app(AutomaticPayroll::class)->preview($request->user(), $request->validated()))->header('Cache-Control', 'no-store');
+    }
+
+    public function automaticStore(AutomaticPayrollRequest $request): JsonResponse
+    {
+        try {
+            $record = app(AutomaticPayroll::class)->save($request->user(), $request->validated());
+
+            return response()->json($this->hr->detail($request->user(), $record), 201)->header('Cache-Control', 'no-store');
+        } catch (QueryException $error) {
+            return $this->databaseError($error);
+        }
     }
 
     public function index(HrWorkflowRequest $request, string $kind): JsonResponse
     {
-        return response()->json($this->hr->listing($request->user(), $kind, $request->boolean('self'), max(1, min(100000, (int) $request->query('page', 1))), $request->query('expiry', 'all')))->header('Cache-Control', 'no-store');
+        return response()->json($this->hr->listing($request->user(), $kind, $request->boolean('self'), max(1, min(100000, (int) $request->query('page', 1))), $request->query('expiry', 'all'), $request->integer('employee_id') ?: null))->header('Cache-Control', 'no-store');
     }
 
     public function store(HrWorkflowRequest $request, string $kind): JsonResponse
