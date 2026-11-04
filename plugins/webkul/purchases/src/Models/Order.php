@@ -44,6 +44,7 @@ class Order extends Model
     protected $table = 'purchases_orders';
 
     protected $fillable = [
+        'work_order_id',
         'name',
         'description',
         'priority',
@@ -259,7 +260,7 @@ class Order extends Model
 
         if ($companyCurrencyId && $this->currency_id && (int) $this->currency_id !== (int) $companyCurrencyId) {
             $companyCurrency = Currency::find($companyCurrencyId);
-            $orderCurrency   = Currency::find($this->currency_id);
+            $orderCurrency = Currency::find($this->currency_id);
 
             $this->currency_rate = ($companyCurrency && $orderCurrency)
                 ? (float) $orderCurrency->getConversionRate($companyCurrency, $orderCurrency)

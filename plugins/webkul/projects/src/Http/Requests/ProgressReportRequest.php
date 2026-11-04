@@ -15,6 +15,9 @@ class ProgressReportRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'work_order_route_id'   => ['required', 'integer', 'min:1'],
+            'chainage_from'         => ['required', 'string', 'max:30'],
+            'chainage_to'           => ['required', 'string', 'max:30'],
             'route_id'              => ['required', 'integer', 'min:1'],
             'report_date'           => ['required', 'date_format:Y-m-d'],
             'team'                  => ['required', 'string', 'max:120'],

@@ -3,6 +3,7 @@
 namespace Webkul\Project\Http\Controllers\API\V2;
 
 use App\Http\Controllers\Controller;
+use App\Services\WorkOrders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -58,7 +59,7 @@ class ProgressController extends Controller
         return response()->json([
             'project'      => ['id' => $progressProject->id, 'name' => $progressProject->name],
             'capabilities' => ['can_configure' => $canConfigure, 'can_submit' => $this->access->submit($request->user(), $progressProject), 'can_manage_members' => $this->access->manageMembers($request->user(), $progressProject)],
-            'routes'       => ProgressRoute::query()->where('project_id', $progressProject->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'routes'       => app(WorkOrders::class)->routes($progressProject),
             'activities'   => ProgressActivityResource::collection($activities)->resolve($request),
             'members'      => $this->access->manageMembers($request->user(), $progressProject)
                 ? ProgressMembership::query()->where('project_id', $progressProject->id)->with('user:id,name')->get()->map(fn (ProgressMembership $member): array => [
@@ -101,7 +102,7 @@ class ProgressController extends Controller
 
     public function showReport(ProgressQueryRequest $request, Project $progressProject, int $report): ProgressReportResource
     {
-        return new ProgressReportResource(ProgressReport::query()->where('project_id', $progressProject->id)->with(['route', 'entries.version'])->findOrFail($report));
+        return new ProgressReportResource(ProgressReport::query()->where('project_id', $progressProject->id)->with(['route', 'entries.version', 'workOrderRoute.version.workOrder'])->findOrFail($report));
     }
 
     public function tracker(ProgressQueryRequest $request, Project $progressProject): JsonResponse

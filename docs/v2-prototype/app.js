@@ -258,7 +258,16 @@
         reportAttempt = null;
         el('progressError').classList.add('hidden');
         el('activityInputs').replaceChildren();
-        el('route').innerHTML = api ? workspace.routes.map(route => '<option value="' + route.id + '">' + escapeHTML(route.name) + '</option>').join('') : routes[currentProject].map(route => '<option>' + escapeHTML(route) + '</option>').join('');
+        el('route').innerHTML = api ? workspace.routes.map(route => '<option value="' + route.work_order_route_id + '">' + escapeHTML(route.name + ' · ' + route.work_order_reference + ' v' + route.version + ' · ' + route.chainage_from + '–' + route.chainage_to) + '</option>').join('') : routes[currentProject].map(route => '<option>' + escapeHTML(route) + '</option>').join('');
+        if (api) {
+            if (!el('workOrderChainages')) {
+                const fields = document.createElement('div'); fields.id = 'workOrderChainages'; fields.className = 'formgrid';
+                fields.innerHTML = '<label class="field">Chainage from<input id="progressChainageFrom" class="input" placeholder="0+000"></label><label class="field">Chainage to<input id="progressChainageTo" class="input" placeholder="1+000"></label><p class="muted">Routes and allowed chainages come from approved Work Orders. Activity input titles and formulas remain configurable.</p>';
+                el('activityInputs').before(fields);
+            }
+            const range = () => { const selected = workspace.routes.find(r => String(r.work_order_route_id) === el('route').value); el('progressChainageFrom').value = selected?.chainage_from || ''; el('progressChainageTo').value = selected?.chainage_to || ''; };
+            el('route').onchange = range; range();
+        }
         el('date').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         publishedColumns().forEach(column => {
             const section = document.createElement('div');
@@ -296,7 +305,9 @@
                     location: row.querySelector('.entry-location').value.trim() || null,
                 })).filter(row => Object.values(row.inputs).some(value => value.trim()) || row.team || row.location);
                 if (!rows.length) throw Error('Enter at least one activity value.');
-                const payload = { route_id: Number(el('route').value), report_date: date, team, location: el('chainage').value.trim() || null, entries: rows };
+                const selectedRoute = workspace.routes.find(r => String(r.work_order_route_id) === el('route').value);
+                if (!selectedRoute) throw Error('Select an approved Work Order route.');
+                const payload = { route_id: selectedRoute.id, work_order_route_id: selectedRoute.work_order_route_id, chainage_from: el('progressChainageFrom').value, chainage_to: el('progressChainageTo').value, report_date: date, team, location: el('chainage').value.trim() || null, entries: rows };
                 const signature = JSON.stringify(payload);
                 if (!reportAttempt || reportAttempt.signature !== signature) reportAttempt = { signature, key: crypto.randomUUID() };
                 setBusy(true);
@@ -342,12 +353,12 @@
                 for (const id of group.report_ids) reports.push((await api.project(selected, 'reports/' + id)).data);
                 if (selected !== projectId()) return;
                 group = { ...group, entries: reports.flatMap(report => report.entries.map(entry => ({ ...entry,
-                    configuration: { ...entry.configuration, version: entry.version }, values: entry.inputs,
+                    configuration: { ...entry.configuration, version: entry.version }, values: entry.inputs, workOrder: report.work_order,
                 }))) };
             } catch (error) { connectionError(error); return; }
         }
         el('detailsTitle').textContent = group.route + ' · ' + group.date;
-        el('detailsBody').innerHTML = group.entries.map(entry => '<section class="entry"><h3>' + escapeHTML(entry.configuration.name) + ' · v' + entry.configuration.version + '</h3><p>' + escapeHTML(entry.team + ' · ' + (entry.location || 'No location') + ' · ' + entry.status) + '</p><p><b>Recorded: ' + escapeHTML(entry.result + ' ' + entry.configuration.unit) + '</b></p><dl>' + entry.configuration.fields.map(item => '<dt>' + escapeHTML(item.name) + '</dt><dd>' + escapeHTML(entry.values[item.key] ?? '—') + '</dd>').join('') + '</dl><p class="foot">' + escapeHTML(entry.configuration.formula ? 'Formula: ' + entry.configuration.formula : 'Output input: ' + entry.configuration.outputField) + '</p></section>').join('');
+        el('detailsBody').innerHTML = group.entries.map(entry => '<section class="entry"><h3>' + escapeHTML(entry.configuration.name) + ' · v' + entry.configuration.version + '</h3>' + (entry.workOrder ? '<p>' + escapeHTML(entry.workOrder.reference + ' · WO v' + entry.workOrder.version + ' · CH ' + entry.workOrder.chainage_from + '–' + entry.workOrder.chainage_to) + '</p>' : '') + '<p>' + escapeHTML(entry.team + ' · ' + (entry.location || 'No location') + ' · ' + entry.status) + '</p><p><b>Recorded: ' + escapeHTML(entry.result + ' ' + entry.configuration.unit) + '</b></p><dl>' + entry.configuration.fields.map(item => '<dt>' + escapeHTML(item.name) + '</dt><dd>' + escapeHTML(entry.values[item.key] ?? '—') + '</dd>').join('') + '</dl><p class="foot">' + escapeHTML(entry.configuration.formula ? 'Formula: ' + entry.configuration.formula : 'Output input: ' + entry.configuration.outputField) + '</p></section>').join('');
         showModal('detailsBackdrop');
     }
     function exportCSV() {
@@ -456,6 +467,9 @@
     }
     function applyCapabilities() {
         const configure = workspace?.capabilities.can_configure || false;
+        if (!el('workOrderNotice')) { const notice = document.createElement('p'); notice.id = 'workOrderNotice'; notice.className = 'notice'; el('tracker').querySelector('.heading').after(notice); }
+        el('workOrderNotice').textContent = 'No authorised Work Order routes yet. Ask a project/finance manager to approve a Work Order for this project. Existing progress remains visible.';
+        el('workOrderNotice').classList.toggle('hidden', !!workspace?.routes.length);
         for (const id of ['trackerNew', 'dashNew']) el(id).disabled = !workspace?.capabilities.can_submit || !workspace?.routes.length || !publishedColumns().length;
         for (const id of ['addColumn', 'routeSetup']) el(id).disabled = !configure;
         el('memberSetup').classList.toggle('hidden', !workspace?.capabilities.can_manage_members);
@@ -520,7 +534,8 @@
         el('refreshWorkspace').onclick = () => loadWorkspace();
         el('previousPage').onclick = () => loadWorkspace(trackerMeta.page - 1);
         el('nextPage').onclick = () => loadWorkspace(trackerMeta.page + 1);
-        el('routeSetup').onclick = () => openSetup('route');
+        el('routeSetup').textContent = 'Work Order routes';
+        el('routeSetup').onclick = async () => { navigate('finance'); await business.open('finance'); const state = business.states.finance; if (state?.catalog.sections.some(s => s.key === 'work-orders')) { state.section = 'work-orders'; business.render('finance'); await business.load('finance'); } };
         el('memberSetup').onclick = () => openSetup('member');
         try {
             projectRows = await api.projects();

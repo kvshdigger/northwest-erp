@@ -24,7 +24,12 @@ class NativeFinanceController extends Controller
     {
         $company = $request->integer('company_id') ?: (app(NativeHr::class)->companyIds($request->user())[0] ?? 0);
 
-        return response()->json($this->finance->form($request->user(), $kind, $company))->header('Cache-Control', 'no-store');
+        if ($request->integer('order_id')) {
+            abort_unless($kind === 'purchase-orders', 422);
+            $this->finance->record($request->user(), $kind, $request->integer('order_id'));
+        }
+
+        return response()->json($this->finance->form($request->user(), $kind, $company, $request->integer('order_id') ?: null))->header('Cache-Control', 'no-store');
     }
 
     public function show(Request $request, string $kind, int $record): JsonResponse
@@ -64,6 +69,14 @@ class NativeFinanceController extends Controller
         } catch (\Exception $error) {
             throw ValidationException::withMessages(['setup' => 'Confirmation could not complete. Check the company accounting, tax, stock and journal setup before retrying.']);
         }
+
+        return response()->json($this->finance->detail($request->user(), $kind, $row))->header('Cache-Control', 'no-store');
+    }
+
+    public function cancel(NativeFinanceRequest $request, string $kind, int $record): JsonResponse
+    {
+        abort_unless($kind === 'purchase-orders', 404);
+        $row = $this->finance->cancel($request->user(), $record, $request->validated('revision'));
 
         return response()->json($this->finance->detail($request->user(), $kind, $row))->header('Cache-Control', 'no-store');
     }
