@@ -27,8 +27,9 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
-    Route::prefix('hr/{kind}')->whereIn('kind', ['employees', 'departments'])->group(function (): void {
+    Route::prefix('hr/{kind}')->whereIn('kind', ['employees', 'departments', 'leave'])->group(function (): void {
         $hr = NativeHrController::class;
+        Route::post('{record}/decision', [$hr, 'decide'])->whereNumber('record')->name('hr.decide');
         Route::get('form', [$hr, 'form'])->name('hr.form');
         Route::post('/', [$hr, 'store'])->name('hr.store');
         Route::get('{record}', [$hr, 'show'])->whereNumber('record')->name('hr.show');

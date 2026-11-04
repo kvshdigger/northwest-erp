@@ -45,7 +45,7 @@ class NativeHrRequest extends FormRequest
         foreach ($fields as $field) {
             [$key, , $type] = $field;
             $validation = ($field[4] ?? false) || $type === 'checkbox' ? ['required'] : ['nullable'];
-            if (in_array($key, ['company_id', 'department_id', 'job_id', 'work_location_id', 'parent_id', 'coach_id', 'manager_id'], true)) {
+            if (in_array($key, ['company_id', 'department_id', 'job_id', 'work_location_id', 'parent_id', 'coach_id', 'manager_id', 'employee_id', 'holiday_status_id'], true)) {
                 $validation = [...$validation, 'integer', 'min:1'];
             } elseif ($type === 'checkbox') {
                 $validation[] = 'boolean';
@@ -63,6 +63,13 @@ class NativeHrRequest extends FormRequest
         if ($this->route('kind') === 'employees') {
             $rules['values.gender'][] = Rule::in(['male', 'female', 'other']);
             $rules['values.marital'][] = Rule::in(['single', 'married', 'divorced', 'widowed']);
+        }
+
+        if ($this->route('kind') === 'leave') {
+            $rules['values.request_date_to'][] = 'after_or_equal:values.request_date_from';
+            $rules['values.request_date_to'][] = 'before_or_equal:'.now()->addYears(5)->format('Y-m-d');
+            $rules['values.request_date_from'][] = 'after_or_equal:'.now()->subYears(5)->format('Y-m-d');
+            $rules['values.request_date_from_period'] = ['required_if:values.request_unit_half,true', 'nullable', Rule::in(['morning', 'afternoon'])];
         }
 
         return $rules;

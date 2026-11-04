@@ -16,6 +16,8 @@ use Webkul\Employee\Models\WorkLocation;
 use Webkul\Security\Models\User;
 use Webkul\Support\Models\Company;
 use Webkul\Support\Services\CompanyContext;
+use Webkul\TimeOff\Enums\State;
+use Webkul\TimeOff\Models\Leave;
 
 class NativeHr
 {
@@ -23,6 +25,9 @@ class NativeHr
 
     public function fields(string $kind): array
     {
+        if ($kind === 'leave') {
+            return app(NativeLeave::class)->fields();
+        }
         $base = [
             ['name', $kind === 'employees' ? 'Employee name' : 'Department name', 'text', 'Work information', true],
             ['company_id', 'Company', 'select', 'Organisation', true, 'companies'],
@@ -69,7 +74,7 @@ class NativeHr
     public function model(string $kind): string
     {
         return match ($kind) {
-            'employees' => Employee::class, 'departments' => Department::class, default => abort(404)
+            'leave' => Leave::class, 'employees' => Employee::class, 'departments' => Department::class, default => abort(404)
         };
     }
 
@@ -103,6 +108,9 @@ class NativeHr
         $model = $this->model($kind);
         Gate::forUser($user)->authorize('view', new $model);
         $ids = $this->companyIds($user);
+        if ($kind === 'leave') {
+            return ['defaults' => ['company_id' => $ids[0] ?? null, 'request_unit_half' => false, 'request_date_from_period' => 'morning'], 'fields' => array_map(fn ($field) => ['key' => $field[0], 'label' => $field[1], 'type' => $field[2], 'group' => $field[3], 'required' => $field[4] ?? false, 'options' => $field[5] ?? null], $this->fields($kind)), 'lookups' => app(NativeLeave::class)->lookups($user), 'can_create' => $user->can('create', $model)];
+        }
         $option = fn (Model $row): array => ['id' => $row->id, 'name' => $row->name, 'company_id' => $row->company_id];
         $lookup = fn (string $class) => $class::query()->where(fn ($query) => $query->whereIn('company_id', $ids)->orWhereNull('company_id'))->orderBy('name')->get(['id', 'name', 'company_id'])->map($option)->all();
 
@@ -128,11 +136,14 @@ class NativeHr
             }
         }
 
-        return ['id' => $record->id, 'values' => $values, 'revision' => $this->revision($record), 'can_edit' => $user->can('update', $record)];
+        return ['id' => $record->id, 'values' => $values, 'revision' => $this->revision($record), 'can_edit' => $user->can('update', $record) && ($kind !== 'leave' || $record->state === State::CONFIRM), ...($kind === 'leave' ? ['status' => $record->state?->getLabel(), 'duration' => $record->duration_display, 'actions' => app(NativeLeave::class)->actions($user, $record)] : [])];
     }
 
     public function save(User $user, string $kind, array $data, ?int $id = null): Model
     {
+        if ($kind === 'leave') {
+            return app(NativeLeave::class)->save($user, $data, $id);
+        }
         $class = $this->model($kind);
 
         return (new $class)->getConnection()->transaction(function () use ($user, $kind, $data, $id): Model {
@@ -202,7 +213,7 @@ class NativeHr
         }
     }
 
-    private function revision(Model $record): string
+    public function revision(Model $record): string
     {
         $attributes = $record->getAttributes();
         ksort($attributes);

@@ -3,6 +3,7 @@
 namespace Webkul\TimeOff\Policies;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Models\User;
 use Webkul\Security\Traits\HasScopedPermissions;
 use Webkul\TimeOff\Models\Leave;
@@ -44,7 +45,22 @@ class LeavePolicy
             return false;
         }
 
-        return $this->hasAccess($user, $leave, 'employee');
+        if ($this->hasGlobalAccess($user)) {
+            return true;
+        }
+        if (! in_array($user->resource_permission, [PermissionType::INDIVIDUAL, PermissionType::GROUP], true)) {
+            return false;
+        }
+        $employee = $leave->employee;
+        if (! $employee) {
+            return false;
+        }
+        if ((int) $employee->user_id === (int) $user->id || (int) $employee->parent?->user_id === (int) $user->id || $leave->holidayStatus?->notifiedTimeOffOfficers()->whereKey($user->id)->exists()) {
+            return true;
+        }
+
+        return $user->resource_permission === PermissionType::GROUP
+            && $employee->user?->teams()->whereIn('teams.id', $user->teams()->select('teams.id'))->exists();
     }
 
     /**
