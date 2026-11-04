@@ -18,6 +18,8 @@ use Webkul\Employee\Filament\Resources\EmployeeResource;
 use Webkul\Employee\Models\Department;
 use Webkul\Employee\Models\Employee;
 use Webkul\PluginManager\Package;
+use Webkul\Product\Filament\Resources\ProductResource;
+use Webkul\Product\Models\Product;
 use Webkul\Purchase\Filament\Admin\Clusters\Orders\Resources\PurchaseOrderResource;
 use Webkul\Purchase\Models\PurchaseOrder;
 use Webkul\Security\Models\User;
@@ -33,6 +35,7 @@ class BusinessWorkspace
             'invoices'        => ['Customer invoices', 'accounting', Invoice::class, InvoiceResource::class, 'Draft and issued invoices, payment status and outstanding balances.'],
             'bills'           => ['Vendor bills', 'accounting', Bill::class, BillResource::class, 'Supplier invoices and amounts still payable.'],
             'payments'        => ['Customer payments', 'accounting', Payment::class, PaymentResource::class, 'Customer receipts and their original accounting records.'],
+            'items'           => ['Items', 'products', Product::class, ProductResource::class, 'Goods and services available for purchasing and invoicing.'],
         ];
         $people = [
             'employees'   => ['Employee directory', 'employees', Employee::class, EmployeeResource::class, 'Work contacts, job titles, departments and employment status.'],
@@ -52,7 +55,7 @@ class BusinessWorkspace
         $installed = Package::isPluginInstalled($plugin) && Package::getPackagePlugin($plugin)?->is_active && Schema::hasTable((new $model)->getTable());
         $allowed = $installed && $user->can('viewAny', $model);
 
-        $native = $module === 'people' && in_array($section, ['employees', 'departments', 'leave'], true);
+        $native = $module === 'finance' || ($module === 'people' && in_array($section, ['employees', 'departments', 'leave'], true));
 
         return [
             'native'     => $native, 'can_create' => $allowed && $user->can('create', $model) && $user->can('view', new $model),
@@ -71,6 +74,10 @@ class BusinessWorkspace
             $sections[] = $this->section($user, $module, $key);
         }
 
+        if ($module === 'finance' && app(FinanceDocuments::class)->canConfigure($user)) {
+            $sections[] = ['key' => 'configuration', 'title' => 'PO / Invoice configuration', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
+        }
+
         return ['scope' => 'company', 'sections' => $module === 'people' ? [...$sections, ...app(HrWorkflows::class)->catalog($user)] : $sections, 'planned' => $module === 'finance' ? [
             ['title' => 'Project budgets & cost control', 'description' => 'Budget versions, commitments, actual cost and budget-versus-actual reports.'],
             ['title' => 'Progress claims & retention', 'description' => 'Verified quantities, claim certificates, retention, variations and payment tracking.'],
@@ -84,6 +91,9 @@ class BusinessWorkspace
         abort_unless($user->is_active, 403);
         $access = $this->section($user, $module, $section);
         abort_unless($access['state'] === 'available', 403, 'This module is not available to your account.');
+        if ($module === 'finance') {
+            return app(NativeFinance::class)->listing($user, $section, $filters);
+        }
         [, , $model, $resource] = $this->definitions($module)[$section];
         $fields = match ($section) {
             'employees'       => ['id', 'company_id', 'department_id', 'name', 'job_title', 'work_email', 'is_active'],
