@@ -233,6 +233,7 @@ return [
     */
 
     'custom_permissions' => [
+        'v2_finance_configure',
         'v2_hr_manage_attendance', 'v2_hr_approve_attendance',
         'v2_hr_manage_payroll', 'v2_hr_approve_payroll',
         'v2_hr_manage_documents', 'v2_hr_approve_documents',

@@ -34,6 +34,7 @@ jobs:
           node --check docs/v2-prototype/app.js
           node --check docs/v2-prototype/api.js
           node --check docs/v2-prototype/business.js
+          node --check docs/v2-prototype/finance.js
           node --check docs/v2-prototype/hr.js
           node --check docs/v2-prototype/hr-workflows.js
       - name: Test configuration, formulas and daily aggregation

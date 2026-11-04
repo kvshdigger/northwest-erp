@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BusinessWorkspaceController;
 use App\Http\Controllers\HrWorkflowController;
+use App\Http\Controllers\NativeFinanceController;
 use App\Http\Controllers\NativeHrController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
@@ -28,6 +29,17 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    $finance = NativeFinanceController::class;
+    Route::get('finance/configuration', [$finance, 'configuration']);
+    Route::post('finance/configuration', [$finance, 'saveConfiguration']);
+    Route::prefix('finance/{kind}')->whereIn('kind', ['purchase-orders', 'invoices', 'bills', 'payments', 'items'])->group(function () use ($finance): void {
+        Route::get('form', [$finance, 'form']);
+        Route::post('/', [$finance, 'store']);
+        Route::get('{record}', [$finance, 'show'])->whereNumber('record');
+        Route::put('{record}', [$finance, 'update'])->whereNumber('record');
+        Route::post('{record}/confirm', [$finance, 'confirm'])->whereNumber('record');
+        Route::get('{record}/print', [$finance, 'print'])->whereNumber('record');
+    });
     $operations = HrWorkflowController::class;
     Route::post('hr-workflows/automatic/preview', [$operations, 'automaticPreview'])->name('automatic.preview');
     Route::post('hr-workflows/automatic', [$operations, 'automaticStore'])->name('automatic.store');

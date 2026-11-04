@@ -7,7 +7,7 @@
         return url.origin === location.origin && ['http:', 'https:'].includes(url.protocol) ? url.href : null;
     };
     class BusinessModules {
-        constructor(api) { this.api = api; this.states = {}; this.operations = new NorthwestHrWorkflows(api); this.hr = new NorthwestNativeHr(api, async kind => { if (this.states.people) { this.states.people.section = kind; this.render('people'); await this.load('people'); } }); }
+        constructor(api) { this.api = api; this.states = {}; this.operations = new NorthwestHrWorkflows(api); this.finance = new NorthwestNativeFinance(api); this.hr = new NorthwestNativeHr(api, async kind => { if (this.states.people) { this.states.people.section = kind; this.render('people'); await this.load('people'); } }); }
         async open(module) {
             const host = document.getElementById(module + 'Workspace');
             if (this.states[module]) return;
@@ -36,6 +36,7 @@
                 host.innerHTML = '<h2>' + escape(item.title) + '</h2><p class="muted">' + escape(item.description) + '</p><div class="module-empty"><h3>' + (item.state === 'restricted' ? 'Access required' : 'Module not installed') + '</h3><p>' + (item.state === 'restricted' ? 'Ask your ERP administrator for the appropriate role. Project membership does not grant access to finance or employee records.' : 'An administrator must install this ERP module in the configured environment before records can be shown.') + '</p></div>';
                 return;
             }
+            if (module === 'finance') { await this.finance.render(host, state.section); return; }
             if (item.workflow) { await this.operations.render(host, state.section); return; }
             const indexUrl = safeLink(item.url), createUrl = safeLink(item.create_url);
             host.innerHTML = '<div class="heading"><div><h2>' + escape(item.title) + '</h2><p class="muted">' + escape(item.description) + '</p></div><div class="actions">' + (indexUrl ? '<a class="btn" href="' + escape(indexUrl) + '">Manage in ERP</a>' : '') + (item.native && item.can_create ? '<button class="btn primary" data-native-create>Create ' + (state.section === 'employees' ? 'employee' : state.section === 'leave' ? 'leave request' : 'department') + '</button>' : createUrl ? '<a class="btn primary" href="' + escape(createUrl) + '">Create record</a>' : '') + '</div></div>'

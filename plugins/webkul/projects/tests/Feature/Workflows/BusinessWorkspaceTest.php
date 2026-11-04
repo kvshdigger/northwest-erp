@@ -57,12 +57,12 @@ it('keeps invoice and bill types separate and excludes foreign company amounts',
     $this->getJson('/admin/v2/project-progress/api/modules/finance/bills')->assertOk()->assertJsonCount(1, 'rows')->assertJsonPath('rows.0.cells.0', 'BILL-VISIBLE');
 });
 
-it('shows confirmed purchase orders without mixing draft quotations', function (): void {
+it('shows purchase orders and editable RFQ drafts inside V2', function (): void {
     $user = SecurityHelper::authenticateWithPermissions(['view_any_purchase_purchase::order', 'view_purchase_purchase::order'])->refresh();
     foreach (['draft', 'purchase'] as $state) {
         Order::withoutEvents(fn () => Order::factory()->create(['name' => 'ORDER-'.$state, 'state' => $state, 'company_id' => $user->default_company_id, 'creator_id' => $user->id]));
     }
-    $this->getJson('/admin/v2/project-progress/api/modules/finance/purchase-orders')->assertOk()->assertJsonCount(1, 'rows')->assertJsonPath('rows.0.cells.0', 'ORDER-purchase');
+    $this->getJson('/admin/v2/project-progress/api/modules/finance/purchase-orders')->assertOk()->assertJsonCount(2, 'rows')->assertJsonPath('rows.0.cells.0', 'ORDER-purchase');
 });
 
 it('disables inactive accounts and keeps the entire workspace behind its feature flag', function (): void {
