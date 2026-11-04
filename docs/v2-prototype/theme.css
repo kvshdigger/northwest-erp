@@ -348,3 +348,7 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
     .hr-section { padding: 14px; }
     .hr-modal .modal-actions { bottom: -20px; }
 }
+
+.hr-detail{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr);gap:10px 18px}.hr-detail dt{color:var(--muted)}.hr-detail dd{margin:0;overflow-wrap:anywhere}.hr-section [data-component]{margin-top:12px}[data-components]{grid-column:1/-1;min-width:0}.hr-modal .field:has([data-components]){grid-column:1/-1}.hr-modal table{width:100%}.hr-modal td{overflow-wrap:anywhere}
+
+.hr-workflows h3{margin:24px 0 12px}.hr-workflows .actions{margin:16px 0}.hr-workflows .tablewrap{margin:14px 0}.hr-workflows .hr-detail{margin:20px 0}.hr-workflows ul{padding-left:22px}.hr-workflows li{margin:8px 0}

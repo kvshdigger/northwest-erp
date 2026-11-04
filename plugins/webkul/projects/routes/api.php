@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BusinessWorkspaceController;
+use App\Http\Controllers\HrWorkflowController;
 use App\Http\Controllers\NativeHrController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
@@ -27,6 +28,18 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    $operations = HrWorkflowController::class;
+    Route::put('hr-workflows/self-service/profile', [$operations, 'selfProfile']);
+    Route::get('hr-workflows/self-service', [$operations, 'selfService']);
+    Route::post('hr-workflows/self-service/leave', [$operations, 'selfLeave']);
+    Route::get('hr-workflows/payslip/{record}', [$operations, 'payslip'])->whereNumber('record');
+    Route::prefix('hr-workflows/{kind}')->whereIn('kind', ['attendance', 'payroll', 'payroll-rules', 'documents', 'checklists', 'expenses'])->group(function () use ($operations): void {
+        Route::get('form', [$operations, 'form']);
+        Route::get('/', [$operations, 'index']);
+        Route::post('/', [$operations, 'store']);
+        Route::post('{record}/action', [$operations, 'action'])->whereNumber('record');
+        Route::get('{record}/download', [$operations, 'download'])->whereNumber('record');
+    });
     Route::prefix('hr/{kind}')->whereIn('kind', ['employees', 'departments', 'leave'])->group(function (): void {
         $hr = NativeHrController::class;
         Route::post('{record}/decision', [$hr, 'decide'])->whereNumber('record')->name('hr.decide');
