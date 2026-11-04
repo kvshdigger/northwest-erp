@@ -60,6 +60,7 @@
                             return '<label class="field ' + (field.type === 'checkbox' ? 'hr-check' : '') + '">' + escape(field.label) + (field.required ? ' *' : '') + control + '</label>';
                         }).join('') + '</div></fieldset>').join('')
                         + (!editing && record?.actions?.length ? '<fieldset class="hr-section"><legend>Leave decision</legend><label class="field">Decision reason<textarea class="input" data-reason maxlength="1000"></textarea></label><div class="actions">' + record.actions.map(action => '<button type="button" class="btn" data-decision="' + action + '">' + (action === 'approve' ? 'Approve current stage' : 'Refuse request') + '</button>').join('') + '</div></fieldset>' : '')
+                        + (!editing && record?.can_manage_compensation ? '<p><button type="button" class="btn" data-compensation>Salary & payroll profile</button></p>' : '')
                         + '<div class="notice hidden" data-error role="alert"></div><div class="modal-actions"><button class="btn" type="button" data-cancel>' + (editing ? 'Cancel' : 'Close') + '</button>' + (editing ? '<button class="btn primary" type="submit">Save ' + (kind === 'employees' ? 'employee' : kind === 'leave' ? 'leave request' : 'department') + '</button>' : record.can_edit ? '<button class="btn primary" type="button" data-edit>' + (kind === 'leave' ? 'Edit request' : 'Edit profile') + '</button>' : '') + '</div></form>';
                     const element = content.querySelector('form');
                     const collect = () => Object.fromEntries(form.fields.map(field => {
@@ -67,6 +68,7 @@
                         return [field.key, field.type === 'checkbox' ? input.checked : field.type === 'select' && field.key.endsWith('_id') ? input.value ? Number(input.value) : null : input.value || null];
                     }));
                     content.querySelector('[data-cancel]').onclick = close;
+                    content.querySelector('[data-compensation]')?.addEventListener('click', () => { close(); new NorthwestHrWorkflows(this.api).employeeCompensation(id); });
                     content.querySelectorAll('[data-decision]').forEach(button => button.onclick = async () => {
                         if (busy) return;
                         const reason = content.querySelector('[data-reason]').value.trim();

@@ -77,7 +77,7 @@ test('uses attendance, private documents, checklists, Malaysia payroll and self-
     await reviewDialog.getByRole('button', { name: 'Approve', exact: true }).click();
     await expect(reviewDialog).toBeHidden();
     await page.getByRole('button', { name: 'Back to payroll', exact: true }).click();
-    await page.getByRole('button', { name: 'New payroll draft', exact: true }).click();
+    await page.getByRole('button', { name: 'Specialist/manual payroll', exact: true }).click();
     await dialog.locator('[name=rules_id]').selectOption({ label: 'Malaysia rules ' + suffix });
     await dialog.locator('[name=employee_id]').selectOption({ label: 'Demo Site Engineer' });
     await dialog.locator('[name=period_from]').fill(date);

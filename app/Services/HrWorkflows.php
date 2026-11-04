@@ -18,7 +18,7 @@ use Webkul\Support\Models\Company;
 
 class HrWorkflows
 {
-    public const TITLES = ['attendance' => 'Attendance & timesheets', 'payroll' => 'Payroll & payslips', 'documents' => 'Employment documents', 'self-service' => 'Employee self-service', 'expenses' => 'Expenses', 'checklists' => 'Onboarding & offboarding', 'payroll-rules' => 'Payroll configuration'];
+    public const TITLES = ['attendance' => 'Attendance & timesheets', 'payroll' => 'Payroll & payslips', 'documents' => 'Employment documents', 'self-service' => 'Employee self-service', 'expenses' => 'Expenses', 'checklists' => 'Onboarding & offboarding', 'payroll-rules' => 'Payroll configuration', 'compensation' => 'Employee compensation'];
 
     public function enabled(): bool
     {
@@ -28,7 +28,7 @@ class HrWorkflows
     public function manager(User $user, string $kind, bool $review = false): bool
     {
         $group = match ($kind) {
-            'payroll', 'payroll-rules' => 'payroll', 'checklists', 'documents' => 'documents', default => $kind
+            'payroll', 'payroll-rules', 'compensation' => 'payroll', 'checklists', 'documents' => 'documents', default => $kind
         };
 
         return $user->is_active && $user->can('v2_hr_'.($review ? 'approve_' : 'manage_').$group);
@@ -53,7 +53,7 @@ class HrWorkflows
             abort_if(in_array($kind, ['checklists', 'payroll-rules'], true), 403);
             $employee = $this->ownEmployee($user) ?? abort(403, 'An active linked employee profile is required.');
             $query->where('employee_id', $employee->id);
-            if ($kind === 'payroll') {
+            if (in_array($kind, ['payroll', 'compensation'], true)) {
                 $query->where('state', 'approved');
             }
         }
@@ -80,6 +80,7 @@ class HrWorkflows
             'checklists'    => [$field('title', 'Checklist title'), $field('process', 'Process: onboarding or offboarding'), $field('due_on', 'Due date', 'date'), $field('items', 'Checklist items', 'checklist')],
             'expenses'      => [$field('title', 'Expense description'), $field('date', 'Expense date', 'date'), $field('amount', 'Amount in company currency', 'number'), $field('project_id', 'Project', 'select'), $field('notes', 'Business purpose')],
             'payroll-rules' => [$field('title', 'Configuration / version name'), $field('jurisdiction', 'Payroll country profile'), $field('effective_from', 'Effective from', 'date'), $field('effective_to', 'Effective to', 'date'), $field('components', 'Earnings, deductions and employer contributions', 'components')],
+            'compensation'  => app(AutomaticPayroll::class)->profileFields(),
             'payroll'       => [$field('rules_id', 'Approved payroll configuration', 'select'), $field('period_from', 'Period from', 'date'), $field('period_to', 'Period to', 'date'), $field('pay_date', 'Pay date', 'date'), $field('base_pay', 'Base pay in company currency', 'number'), $field('components', 'Verified manual component amounts', 'components', false), $field('statutory_verified', 'I verified the applicable statutory amounts for this employee and period', 'checkbox')],
             default         => abort(404),
         }];
@@ -91,11 +92,11 @@ class HrWorkflows
         $manage = ! $self && $this->manager($user, $kind);
         $own = $this->ownEmployee($user);
         $ids = app(NativeHr::class)->companyIds($user);
-        $employees = $manage ? Employee::query()->whereIn('company_id', $ids)->where('is_active', true)->get(['id', 'name', 'company_id'])->toArray() : ($own ? [$own->only(['id', 'name', 'company_id'])] : []);
+        $employees = $manage ? Employee::query()->whereIn('company_id', $ids)->when(! in_array($kind, ['payroll', 'compensation'], true), fn ($query) => $query->where('is_active', true))->get(['id', 'name', 'company_id'])->toArray() : ($own ? [$own->only(['id', 'name', 'company_id'])] : []);
         $companies = Company::query()->whereKey($manage ? $ids : [$own?->company_id])->get(['id', 'name', 'currency_id'])->toArray();
         $rules = $kind === 'payroll' && $manage ? HrRecord::query()->whereIn('company_id', $ids)->where('kind', 'payroll-rules')->where('state', 'approved')->get()->map(fn ($record) => ['id' => $record->id, 'name' => $record->data['title'], 'company_id' => $record->company_id, 'components' => $record->data['components']])->all() : [];
 
-        return ['fields' => $this->fields($kind), 'can_create' => $manage || ($own && in_array($kind, ['attendance', 'documents', 'expenses'], true)), 'manage' => $manage, 'lookups' => ['company_id' => $companies, 'employee_id' => $employees, 'project_id' => app(ProgressAccess::class)->projects($user)->where('is_active', true)->get(['id', 'name', 'company_id'])->toArray(), 'rules_id' => $rules], 'defaults' => ['company_id' => $own?->company_id ?? ($ids[0] ?? null), 'employee_id' => $own?->id, 'timezone' => config('app.timezone'), 'break_minutes' => 0, 'overtime_minutes' => 0, 'jurisdiction' => 'Malaysia', 'process' => 'onboarding', 'components' => $kind === 'payroll-rules' ? $this->malaysiaComponents() : []]];
+        return ['fields' => $this->fields($kind), 'can_create' => $manage || ($own && in_array($kind, ['attendance', 'documents', 'expenses'], true)), 'manage' => $manage, 'lookups' => ['company_id' => $companies, 'employee_id' => $employees, 'project_id' => app(ProgressAccess::class)->projects($user)->where('is_active', true)->get(['id', 'name', 'company_id'])->toArray(), 'rules_id' => $rules], 'defaults' => ['company_id' => $own?->company_id ?? ($ids[0] ?? null), 'employee_id' => $own?->id, 'timezone' => config('app.timezone'), 'break_minutes' => 0, 'overtime_minutes' => 0, 'jurisdiction' => 'Malaysia', 'process' => 'onboarding', 'components' => $kind === 'payroll-rules' ? $this->malaysiaComponents() : [], ...($kind === 'compensation' ? ['allowances' => [], 'working_days' => '1,2,3,4,5', 'effective_from' => now()->startOfMonth()->toDateString(), 'effective_to' => now()->endOfYear()->toDateString(), 'employment_start' => now()->startOfMonth()->toDateString(), 'child_relief' => '0.00', 'annual_tp1_relief' => '0.00', 'monthly_zakat' => '0.00', 'opening_month' => 0, 'opening_taxable' => '0.00', 'opening_epf' => '0.00', 'opening_pcb' => '0.00', 'opening_zakat' => '0.00'] : [])]];
     }
 
     public function malaysiaComponents(): array
@@ -103,9 +104,9 @@ class HrWorkflows
         return collect(['EPF employee' => 'deduction', 'SOCSO employee' => 'deduction', 'EIS employee' => 'deduction', 'PCB / MTD' => 'deduction', 'LINDUNG 24 Jam / SKBBK (if applicable)' => 'deduction', 'EPF employer' => 'employer', 'SOCSO employer' => 'employer', 'EIS employer' => 'employer'])->map(fn ($category, $label) => ['label' => $label, 'category' => $category, 'method' => 'manual', 'value' => '0.00'])->values()->all();
     }
 
-    public function listing(User $user, string $kind, bool $self, int $page, string $expiry = 'all'): array
+    public function listing(User $user, string $kind, bool $self, int $page, string $expiry = 'all', ?int $employee = null): array
     {
-        $rows = $this->query($user, $kind, $self)->when($expiry === 'due', fn ($q) => $q->whereDate('due_on', '<=', today()->addDays(30)))->when($expiry === 'expired', fn ($q) => $q->whereDate('due_on', '<', today()))->with('employee:id,name')->orderByDesc('id')->simplePaginate(20, ['*'], 'page', $page);
+        $rows = $this->query($user, $kind, $self)->when($employee, fn ($query) => $query->where('employee_id', $employee))->when($expiry === 'due', fn ($q) => $q->whereDate('due_on', '<=', today()->addDays(30)))->when($expiry === 'expired', fn ($q) => $q->whereDate('due_on', '<', today()))->with('employee:id,name')->orderByDesc('id')->simplePaginate(20, ['*'], 'page', $page);
 
         return ['rows' => $rows->map(fn ($row) => $this->detail($user, $row))->all(), 'page' => $rows->currentPage(), 'has_next' => $rows->hasMorePages()];
     }
@@ -152,7 +153,7 @@ class HrWorkflows
                 }
                 abort_unless(in_array((int) $values['company_id'], app(NativeHr::class)->companyIds($user), true), 403);
                 $company = Company::query()->with('currency')->whereKey($values['company_id'])->lockForUpdate()->firstOrFail();
-                $employee = $kind === 'payroll-rules' ? null : Employee::query()->where('company_id', $company->id)->where('is_active', true)->lockForUpdate()->findOrFail($values['employee_id']);
+                $employee = $kind === 'payroll-rules' ? null : Employee::query()->where('company_id', $company->id)->when($kind !== 'compensation', fn ($query) => $query->where('is_active', true))->lockForUpdate()->findOrFail($values['employee_id']);
                 abort_unless($manager || ((int) $employee?->user_id === (int) $user->id), 403);
                 $data = $values;
                 $starts = $ends = null;
@@ -177,10 +178,13 @@ class HrWorkflows
                     $data['amount_minor'] = $this->minor($values['amount'], (int) $company->currency->decimal_places);
                     $this->require($data['amount_minor'] > 0, 'amount', 'Enter a positive expense amount.');
                 }
-                if (in_array($kind, ['expenses', 'payroll', 'payroll-rules'], true)) {
+                if (in_array($kind, ['expenses', 'payroll', 'payroll-rules', 'compensation'], true)) {
                     $this->require((bool) $company->currency && $company->currency->decimal_places <= 4, 'company_id', 'Configure a company currency with up to four decimal places.');
                     $data['currency'] = $company->currency->name;
                     $data['precision'] = (int) $company->currency->decimal_places;
+                }
+                if ($kind === 'compensation') {
+                    $data = [...$data, ...app(AutomaticPayroll::class)->validateProfile($data)];
                 }
                 if ($kind === 'payroll-rules') {
                     $this->require($values['effective_to'] >= $values['effective_from'], 'effective_to', 'Effective end must follow the start.');
@@ -269,6 +273,12 @@ class HrWorkflows
             abort_unless($record->revision === (int) $action['revision'], 409, 'This record changed. Reopen it before acting.');
             abort_unless(in_array($action['action'], $this->detail($user, $record)['actions'], true), 403);
             $data = $record->data;
+            if ($record->kind === 'payroll' && isset($data['automatic']) && in_array($action['action'], ['approve', 'submit'], true)) {
+                Company::query()->whereKey($record->company_id)->lockForUpdate()->firstOrFail();
+                Employee::query()->whereKey($record->employee_id)->lockForUpdate()->firstOrFail();
+                $fresh = app(AutomaticPayroll::class)->preview($user, ['company_id' => $record->company_id, 'employee_id' => $record->employee_id, 'period_from' => $data['period_from'], 'period_to' => $data['period_to'], 'pay_date' => $data['pay_date']], $record->id);
+                abort_unless(hash_equals($fresh['calculation_hash'], $data['calculation_hash']), 409, 'Compensation, leave, rules or YTD changed. Withdraw this draft and calculate it again.');
+            }
             if (in_array($action['action'], ['complete', 'reopen'], true)) {
                 $item = $action['item'] ?? -1;
                 $this->require(isset($data['items'][$item]), 'item', 'Choose a checklist item.');

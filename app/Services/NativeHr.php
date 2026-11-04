@@ -136,7 +136,7 @@ class NativeHr
             }
         }
 
-        return ['id' => $record->id, 'values' => $values, 'revision' => $this->revision($record), 'can_edit' => $user->can('update', $record) && ($kind !== 'leave' || $record->state === State::CONFIRM), ...($kind === 'leave' ? ['status' => $record->state?->getLabel(), 'duration' => $record->duration_display, 'actions' => app(NativeLeave::class)->actions($user, $record)] : [])];
+        return ['id' => $record->id, 'values' => $values, 'revision' => $this->revision($record), 'can_manage_compensation' => $kind === 'employees' && app(HrWorkflows::class)->manager($user, 'payroll'), 'can_edit' => $user->can('update', $record) && ($kind !== 'leave' || $record->state === State::CONFIRM), ...($kind === 'leave' ? ['status' => $record->state?->getLabel(), 'duration' => $record->duration_display, 'actions' => app(NativeLeave::class)->actions($user, $record)] : [])];
     }
 
     public function save(User $user, string $kind, array $data, ?int $id = null): Model
