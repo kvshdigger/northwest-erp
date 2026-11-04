@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LeaveDecisionRequest;
 use App\Http\Requests\NativeHrRequest;
 use App\Services\NativeHr;
+use App\Services\NativeLeave;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -37,6 +39,18 @@ class NativeHrController extends Controller
         $saved = $this->persist($request, $kind, $record);
 
         return response()->json($this->hr->detail($request->user(), $kind, $saved))->header('Cache-Control', 'no-store');
+    }
+
+    public function decide(LeaveDecisionRequest $request, string $kind, int $record): JsonResponse
+    {
+        try {
+            $saved = app(NativeLeave::class)->decide($request->user(), $record, $request->validated('action'), $request->validated('revision'), $request->validated('reason'));
+        } catch (QueryException $error) {
+            Log::error('Native leave decision failed', ['record_id' => $record, 'sql_state' => $error->errorInfo[0] ?? $error->getCode()]);
+            throw new HttpResponseException(response()->json(['message' => 'Unable to save this decision. Reopen the request before retrying.'], 500));
+        }
+
+        return response()->json($this->hr->detail($request->user(), 'leave', $saved))->header('Cache-Control', 'no-store');
     }
 
     private function persist(NativeHrRequest $request, string $kind, ?int $id = null): Model

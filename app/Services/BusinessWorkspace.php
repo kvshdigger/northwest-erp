@@ -52,7 +52,7 @@ class BusinessWorkspace
         $installed = Package::isPluginInstalled($plugin) && Package::getPackagePlugin($plugin)?->is_active && Schema::hasTable((new $model)->getTable());
         $allowed = $installed && $user->can('viewAny', $model);
 
-        $native = $module === 'people' && in_array($section, ['employees', 'departments'], true);
+        $native = $module === 'people' && in_array($section, ['employees', 'departments', 'leave'], true);
 
         return [
             'native'     => $native, 'can_create' => $allowed && $user->can('create', $model) && $user->can('view', new $model),
@@ -135,7 +135,7 @@ class BusinessWorkspace
                     default           => [$row->name, $row->partner?->name, $company, substr((string) $row->getRawOriginal('invoice_date'), 0, 10), $status.' / '.$this->text($row->payment_state), (string) $row->getRawOriginal('amount_total').' '.$currency, (string) $row->getRawOriginal('amount_residual').' '.$currency],
                 };
 
-                return ['id' => $row->id, 'cells' => array_map(fn ($cell): string => $cell === null || $cell === '' ? '—' : (string) $cell, $cells), 'native' => in_array($section, ['employees', 'departments'], true), 'url' => in_array($section, ['employees', 'departments'], true) ? null : $this->url($resource, 'view', $row)];
+                return ['id' => $row->id, 'cells' => array_map(fn ($cell): string => $cell === null || $cell === '' ? '—' : (string) $cell, $cells), 'native' => in_array($section, ['employees', 'departments', 'leave'], true), 'url' => in_array($section, ['employees', 'departments', 'leave'], true) ? null : $this->url($resource, 'view', $row)];
             })->values();
         $columns = match ($section) {
             'employees'       => ['Employee', 'Job title', 'Department', 'Work email', 'Company', 'Status'],
