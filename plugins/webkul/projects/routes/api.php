@@ -34,6 +34,7 @@ $progressRoutes = function (): void {
     Route::put('hr-workflows/self-service/profile', [$operations, 'selfProfile']);
     Route::get('hr-workflows/self-service', [$operations, 'selfService']);
     Route::post('hr-workflows/self-service/leave', [$operations, 'selfLeave']);
+    Route::get('hr-workflows/payslip-template', [$operations, 'payslipTemplate']);
     Route::get('hr-workflows/payslip/{record}', [$operations, 'payslip'])->whereNumber('record');
     Route::prefix('hr-workflows/{kind}')->whereIn('kind', ['attendance', 'payroll', 'payroll-rules', 'documents', 'checklists', 'expenses', 'compensation'])->group(function () use ($operations): void {
         Route::get('form', [$operations, 'form']);

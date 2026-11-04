@@ -11,6 +11,7 @@ use App\Services\AutomaticPayroll;
 use App\Services\HrWorkflows;
 use App\Services\NativeHr;
 use App\Services\NativeLeave;
+use App\Services\PayslipTemplate;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,15 +96,17 @@ class HrWorkflowController extends Controller
     {
         $row = $this->hr->record($request->user(), 'payroll', $record);
         abort_unless($row->state === 'approved', 409, 'Only approved payroll has an issued payslip.');
-        $data = $row->data;
-        $money = fn ($value) => e(number_format($value / (10 ** $data['precision']), $data['precision'], '.', '').' '.$data['currency']);
-        $html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Payslip '.$row->id.'</title><style>body{font:16px system-ui;max-width:800px;margin:40px auto;padding:20px;color:#171b2d}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:12px;border-bottom:1px solid #ddd}h1{font-size:28px}</style></head><body><h1>'.e($data['company_name']).'</h1><h2>Payslip #'.$row->id.'</h2><p>'.e($data['employee_name']).'</p><p>Period: '.e($data['period_from']).' – '.e($data['period_to']).' · Pay date: '.e($data['pay_date']).'</p><table><tr><th>Component</th><th>Category</th><th>Amount</th></tr><tr><td>Base pay</td><td>Earning</td><td>'.$money($data['base_minor']).'</td></tr>';
-        foreach ($data['lines'] as $line) {
-            $html .= '<tr><td>'.e($line['label']).'</td><td>'.e($line['category']).'</td><td>'.$money($line['amount_minor']).'</td></tr>';
-        }
-        $html .= '</table><p>Gross: '.$money($data['gross_minor']).' · Deductions: '.$money($data['deductions_minor']).'</p><h2>Net pay: '.$money($data['net_minor']).'</h2><p>Employer contributions: '.$money($data['employer_minor']).'</p><p>Approved payroll statement. This statement does not confirm bank payment or statutory remittance. Use your browser’s Print / Save as PDF.</p></body></html>';
 
-        return response($html)->header('Cache-Control', 'private, no-store')->header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'")->header('X-Content-Type-Options', 'nosniff');
+        return response()->view('payroll.payslip', ['slip' => app(PayslipTemplate::class)->data($row)])
+            ->header('Cache-Control', 'private, no-store')->header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'")->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function payslipTemplate(Request $request): mixed
+    {
+        abort_unless($request->user()->is_active && $this->hr->manager($request->user(), 'payroll'), 403);
+
+        return response()->view('payroll.payslip', ['slip' => app(PayslipTemplate::class)->sample()])
+            ->header('Cache-Control', 'private, no-store')->header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'")->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function selfService(Request $request): JsonResponse

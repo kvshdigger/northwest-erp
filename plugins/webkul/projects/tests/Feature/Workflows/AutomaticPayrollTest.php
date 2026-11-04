@@ -27,31 +27,29 @@ beforeEach(function (): void {
     $this->input = ['company_id' => $this->user->default_company_id, 'employee_id' => $this->employee->id, 'period_from' => '2026-10-19', 'period_to' => '2026-10-31', 'pay_date' => '2026-10-31'];
 });
 
-function approveCompensation($test, array $overrides = []): int
+function saveCompensation($test, array $overrides = []): int
 {
     $record = $test->postJson($test->base.'compensation', ['request_id' => (string) Str::uuid(), 'values' => [...$test->profile, ...$overrides]])->assertCreated()->json();
-    SecurityHelper::authenticateWithPermissions($test->permissions)->refresh();
-    $test->postJson($test->base.'compensation/'.$record['id'].'/action', ['action' => 'approve', 'revision' => 1, 'reason' => 'Compensation and TP3 verified'])->assertOk();
-    $test->actingAs($test->user);
+    expect($record['state'])->toBe('saved')->and($record['actions'])->toBe([]);
 
     return $record['id'];
 }
 
-it('loads salary and allowance from an approved profile and prorates October calendar days', function (): void {
-    approveCompensation($this);
+it('loads salary and allowance from the latest saved profile and prorates October calendar days', function (): void {
+    saveCompensation($this);
     $result = $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->assertJsonPath('automatic.calendar_days', 31)->assertJsonPath('automatic.eligible_days', 13)->assertJsonPath('base_minor', 130000)->assertJsonPath('gross_minor', 143000)->json();
     expect($result['lines'][0]['amount_minor'])->toBe(13000)->and($result['automatic']['epf_employee_minor'])->toBe(15900);
 });
 
 it('uses actual calendar denominators for January, February and April', function (): void {
-    approveCompensation($this, ['employment_start' => '2026-01-01', 'opening_month' => 0]);
+    saveCompensation($this, ['employment_start' => '2026-01-01', 'opening_month' => 0]);
     $input = [...$this->input, 'period_from' => '2026-01-01', 'period_to' => '2026-01-31', 'pay_date' => '2026-01-31'];
     $this->postJson($this->base.'automatic/preview', $input)->assertOk()->assertJsonPath('base_minor', 310000)->assertJsonPath('automatic.eligible_days', 31);
     expect(CarbonImmutable::parse('2028-02-01')->daysInMonth)->toBe(29);
 });
 
 it('subtracts only approved unpaid working days and keeps paid leave eligible', function (): void {
-    approveCompensation($this);
+    saveCompensation($this);
     $type = LeaveType::create(['name' => 'Unpaid auto test', 'company_id' => $this->user->default_company_id, 'is_active' => true, 'unpaid' => true, 'requires_allocation' => 'no']);
     Leave::create(['employee_id' => $this->employee->id, 'company_id' => $this->user->default_company_id, 'holiday_status_id' => $type->id, 'state' => 'validate_two', 'request_date_from' => '2026-10-20', 'request_date_to' => '2026-10-20', 'date_from' => '2026-10-20', 'date_to' => '2026-10-20', 'number_of_days' => 1, 'request_unit_half' => false]);
     $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->assertJsonPath('automatic.unpaid_days', 1)->assertJsonPath('base_minor', 120000)->assertJsonPath('gross_minor', 132000);
@@ -96,7 +94,7 @@ it('calculates non-resident tax and rounds resident MTD upward to five sen', fun
 });
 
 it('saves calculated snapshots once and detects stale previews', function (): void {
-    approveCompensation($this);
+    saveCompensation($this);
     $preview = $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->json();
     $payload = [...$this->input, 'calculation_hash' => $preview['calculation_hash'], 'request_id' => (string) Str::uuid()];
     $id = $this->postJson($this->base.'automatic', $payload)->assertCreated()->assertJsonPath('values.base_minor', 130000)->json('id');
@@ -105,15 +103,15 @@ it('saves calculated snapshots once and detects stale previews', function (): vo
     $this->postJson($this->base.'automatic/preview', $this->input)->assertUnprocessable();
 });
 
-it('requires approved setup, complete YTD and supported effective dates', function (): void {
+it('requires saved setup, complete YTD and supported effective dates', function (): void {
     $this->postJson($this->base.'automatic/preview', $this->input)->assertUnprocessable();
-    approveCompensation($this, ['opening_month' => 0]);
+    saveCompensation($this, ['opening_month' => 0]);
     $this->postJson($this->base.'automatic/preview', $this->input)->assertUnprocessable();
     $this->postJson($this->base.'automatic/preview', [...$this->input, 'pay_date' => '2027-01-01'])->assertUnprocessable();
 });
 
 it('does not allow clients to inject salary, deductions or another company', function (): void {
-    approveCompensation($this);
+    saveCompensation($this);
     $this->postJson($this->base.'automatic/preview', [...$this->input, 'base_pay' => 1])->assertUnprocessable();
     $this->postJson($this->base.'automatic/preview', [...$this->input, 'company_id' => 999999])->assertNotFound();
     SecurityHelper::authenticateWithPermissions([]);
@@ -121,15 +119,16 @@ it('does not allow clients to inject salary, deductions or another company', fun
 });
 
 it('refuses stale calculation hashes and does not issue stale automatic drafts', function (): void {
-    approveCompensation($this);
+    saveCompensation($this);
     $old = $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->json();
-    approveCompensation($this, ['monthly_base' => '3200.00']);
+    saveCompensation($this, ['monthly_base' => '3200.00']);
     $this->postJson($this->base.'automatic', [...$this->input, 'request_id' => (string) Str::uuid(), 'calculation_hash' => $old['calculation_hash']])->assertConflict();
     expect(HrRecord::where('kind', 'payroll')->count())->toBe(0);
 });
 
-it('recalculates before submission and approval and uses approved history for the next month', function (): void {
-    approveCompensation($this);
+it('recalculates before submission and approval and freezes issued payslip details', function (): void {
+    $this->employee->update(['job_title' => 'Original role', 'identification_id' => '900302101234']);
+    saveCompensation($this, ['employee_number' => 'EMP-ORIGINAL']);
     $preview = $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->json();
     $saved = $this->postJson($this->base.'automatic', [...$this->input, 'request_id' => (string) Str::uuid(), 'calculation_hash' => $preview['calculation_hash']])->assertCreated()->json();
     $this->postJson($this->base.'payroll/'.$saved['id'].'/action', ['action' => 'submit', 'revision' => 1, 'reason' => 'Calculated draft checked'])->assertOk();
@@ -138,11 +137,13 @@ it('recalculates before submission and approval and uses approved history for th
     $this->actingAs($this->user);
     $next = $this->postJson($this->base.'automatic/preview', [...$this->input, 'period_from' => '2026-11-01', 'period_to' => '2026-11-30', 'pay_date' => '2026-11-30'])->assertOk()->json();
     expect($next['automatic']['ytd']['taxable'])->toBe(143000)->and($next['automatic']['ytd']['epf'])->toBe(15900);
-    $this->get($this->base.'payslip/'.$saved['id'])->assertOk()->assertSee('1430.00');
+    $this->employee->update(['job_title' => 'Changed role']);
+    saveCompensation($this, ['employee_number' => 'EMP-NEW']);
+    $this->get($this->base.'payslip/'.$saved['id'])->assertOk()->assertSee('1,430.00')->assertSee('Original role')->assertSee('EMP-ORIGINAL')->assertDontSee('Changed role')->assertDontSee('EMP-NEW')->assertDontSee('900302101234');
 });
 
 it('does not silently omit overtime or reveal payroll setup to an ordinary employee', function (): void {
-    approveCompensation($this);
+    saveCompensation($this);
     HrRecord::create(['company_id' => $this->user->default_company_id, 'employee_id' => $this->employee->id, 'kind' => 'attendance', 'state' => 'approved', 'creator_id' => $this->user->id, 'starts_at' => '2026-10-20 08:00:00', 'ends_at' => '2026-10-20 18:00:00', 'data' => ['overtime_minutes' => 60]]);
     $this->postJson($this->base.'automatic/preview', $this->input)->assertUnprocessable();
     $this->employee->update(['user_id' => $this->user->id]);
@@ -151,8 +152,17 @@ it('does not silently omit overtime or reveal payroll setup to an ordinary emplo
 });
 
 it('retains EIS eligibility after age 57 when approved earlier payroll proves prior contributions', function (): void {
-    approveCompensation($this, ['date_of_birth' => '1969-03-02', 'eis_prior_contribution' => 'no']);
+    saveCompensation($this, ['date_of_birth' => '1969-03-02', 'eis_prior_contribution' => 'no']);
     HrRecord::create(['company_id' => $this->user->default_company_id, 'employee_id' => $this->employee->id, 'kind' => 'payroll', 'state' => 'approved', 'creator_id' => $this->user->id, 'starts_at' => '2026-02-01 00:00:00', 'ends_at' => '2026-02-28 23:59:59', 'data' => ['period_to' => '2026-02-28', 'pay_date' => '2026-02-28', 'automatic' => [], 'lines' => [['label' => 'EIS employee', 'category' => 'deduction', 'amount_minor' => 610]]]]);
     $preview = $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->json();
     expect(collect($preview['lines'])->firstWhere('label', 'EIS employee')['amount_minor'])->toBe(290);
+});
+
+it('uses the latest saved effective version without approval and preserves earlier versions', function (): void {
+    $first = saveCompensation($this);
+    $latest = saveCompensation($this, ['monthly_base' => '6200.00', 'employee_number' => 'EMP-42']);
+    $this->postJson($this->base.'automatic/preview', $this->input)->assertOk()->assertJsonPath('base_minor', 260000)->assertJsonPath('payslip_snapshot.employee_number', 'EMP-42');
+    expect(HrRecord::findOrFail($first)->data['monthly_base'])->toBe('3100.00');
+    $this->postJson($this->base.'compensation/'.$latest.'/action', ['revision' => 1, 'action' => 'approve', 'reason' => 'No profile approval needed'])->assertForbidden();
+    $this->get($this->base.'payslip-template')->assertOk()->assertSee('LAYOUT SAMPLE ONLY')->assertSee('3,486.61');
 });

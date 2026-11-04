@@ -115,7 +115,7 @@ it('requires approved rule versions, statutory verification and payroll review b
     $this->actingAs($reviewer);
     $this->postJson($this->base.'payroll/'.$created['id'].'/action', ['revision' => 2, 'action' => 'approve', 'reason' => 'Totals and statutory values checked'])->assertOk();
     $this->actingAs($this->user);
-    $this->get($this->base.'payslip/'.$created['id'])->assertOk()->assertSee('2820.00');
+    $this->get($this->base.'payslip/'.$created['id'])->assertOk()->assertSee('2,820.00');
     $this->postJson($this->base.'payroll', [...$payload, 'request_id' => (string) Str::uuid()])->assertUnprocessable();
 });
 

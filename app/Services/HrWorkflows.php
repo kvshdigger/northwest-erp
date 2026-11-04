@@ -54,7 +54,7 @@ class HrWorkflows
             $employee = $this->ownEmployee($user) ?? abort(403, 'An active linked employee profile is required.');
             $query->where('employee_id', $employee->id);
             if (in_array($kind, ['payroll', 'compensation'], true)) {
-                $query->where('state', 'approved');
+                $kind === 'compensation' ? $query->whereIn('state', ['saved', 'submitted', 'approved']) : $query->where('state', 'approved');
             }
         }
 
@@ -128,6 +128,9 @@ class HrWorkflows
         }
         if ($record->kind === 'checklists' && $this->manager($user, 'checklists') && in_array($record->state, ['open', 'completed'], true)) {
             $actions = ['complete', 'reopen'];
+        }
+        if ($record->kind === 'compensation') {
+            $actions = [];
         }
         $expires = $data['expires_on'] ?? null;
 
@@ -208,6 +211,9 @@ class HrWorkflows
                 if ($kind === 'checklists') {
                     $data['completed'] = [];
                 }
+                if ($kind === 'payroll') {
+                    $data['payslip_snapshot'] = app(PayslipTemplate::class)->employeeSnapshot($employee);
+                }
                 if ($attachment) {
                     abort_unless(in_array($kind, ['documents', 'expenses'], true), 422, 'Attachments are accepted only for documents and expense receipts.');
                     $path = $attachment->store('v2-hr/'.$company->id, 'local');
@@ -217,7 +223,7 @@ class HrWorkflows
                     $data['file_sha256'] = hash_file('sha256', $attachment->getRealPath());
                 }
                 $record = HrRecord::query()->create(['company_id' => $company->id, 'employee_id' => $employee?->id, 'kind' => $kind, 'state' => match ($kind) {
-                    'payroll' => 'draft', 'checklists' => 'open', default => 'submitted'
+                    'payroll' => 'draft', 'compensation' => 'saved', 'checklists' => 'open', default => 'submitted'
                 }, 'creator_id' => $user->id, 'due_on' => $data['expires_on'] ?? $data['due_on'] ?? null, 'starts_at' => $starts, 'ends_at' => $ends, 'data' => $data]);
                 $this->audit($user, $record, 'created', $key, $hash);
 
@@ -296,6 +302,9 @@ class HrWorkflows
                 };
                 if (in_array($action['action'], ['approve', 'reject'], true)) {
                     $record->reviewer_id = $user->id;
+                    if ($record->kind === 'payroll' && $action['action'] === 'approve') {
+                        $data['approval_snapshot'] = ['name' => $user->name, 'at' => now()->toIso8601String()];
+                    }
                 }
             }
             $record->data = $data;
