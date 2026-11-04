@@ -10,6 +10,8 @@ on:
       - 'app/Services/NativeLeave.php'
       - 'app/Services/HrWorkflows.php'
       - 'app/Services/AutomaticPayroll.php'
+      - 'app/Services/PayslipTemplate.php'
+      - 'resources/views/payroll/**'
       - 'app/Services/MalaysiaPayroll.php'
       - 'app/Http/Requests/AutomaticPayrollRequest.php'
       - 'config/malaysia-payroll.php'

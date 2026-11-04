@@ -13,7 +13,7 @@ async function login(page: Page, email: string) {
     await page.getByRole('button', { name: 'Employees & HR', exact: true }).click();
 }
 
-test('loads approved employee salary and allowances and calculates a period without manual pay fields', async ({ page, browser }) => {
+test('loads saved employee salary and allowances and calculates a period without manual pay fields', async ({ page }) => {
     test.setTimeout(360000);
     const suffix = Date.now().toString(), employee = 'Auto Payroll ' + suffix, profile = 'Auto profile ' + suffix;
     const errors: string[] = [];
@@ -46,16 +46,6 @@ test('loads approved employee salary and allowances and calculates a period with
     await expect(dialog.getByRole('button', { name: 'New compensation version', exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: 'Close', exact: true }).first().click();
 
-    const reviewContext = await browser.newContext({ baseURL: process.env.BASE_URL });
-    const reviewer = await reviewContext.newPage();
-    await login(reviewer, process.env.PROJECT_PROGRESS_REVIEWER_EMAIL || 'v2-hr-reviewer@example.test');
-    await reviewer.getByRole('button', { name: 'Payroll & payslips', exact: true }).click();
-    await reviewer.getByRole('button', { name: 'Employee compensation', exact: true }).click();
-    await reviewer.locator('#peopleWorkspace tbody tr').filter({ hasText: profile }).getByRole('button', { name: 'View', exact: true }).click();
-    await reviewer.getByRole('dialog').locator('[data-reason]').fill('Synthetic employee compensation independently reviewed');
-    await reviewer.getByRole('dialog').getByRole('button', { name: 'Approve', exact: true }).click();
-    await expect(reviewer.getByRole('dialog')).toBeHidden();
-
     await page.getByRole('button', { name: 'Payroll & payslips', exact: true }).click();
     await page.getByRole('button', { name: 'New payroll draft', exact: true }).click();
     dialog = page.getByRole('dialog');
@@ -83,5 +73,5 @@ test('loads approved employee salary and allowances and calculates a period with
     await page.locator('#peopleWorkspace tbody tr').filter({ hasText: employee }).getByRole('button', { name: 'View', exact: true }).click();
     await expect(dialog).toContainText('Gross for period: 1430.00 MYR');
     expect(errors).toEqual([]);
-    await reviewContext.close();
+
 });

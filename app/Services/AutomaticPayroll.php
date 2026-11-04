@@ -22,6 +22,7 @@ class AutomaticPayroll
 
         return [
             $f('title', 'Compensation version name'), $f('effective_from', 'Effective from', 'date'), $f('effective_to', 'Effective to', 'date'),
+            $f('employee_number', 'Employee number', 'text', false), $f('epf_number', 'EPF account number', 'text', false), $f('socso_number', 'SOCSO account number', 'text', false), $f('tax_number', 'Income tax number', 'text', false),
             $f('monthly_base', 'Monthly basic salary (MYR)', 'number'), $f('allowances', 'Recurring allowances', 'allowances', false),
             $f('employment_start', 'Employment start', 'date'), $f('employment_end', 'Last employment day', 'date', false), $f('date_of_birth', 'Date of birth', 'date'),
             $choice('citizenship', 'Citizenship category', ['malaysian' => 'Malaysian citizen', 'pr' => 'Permanent resident', 'foreign' => 'Other non-citizen']),
@@ -78,9 +79,9 @@ class AutomaticPayroll
         $pay = CarbonImmutable::parse($input['pay_date']);
         $this->check($from->format('Y-m') === $to->format('Y-m') && $from <= $to, 'Automatic monthly payroll must be within one calendar wage month.');
         $this->check($from->toDateString() >= config('malaysia-payroll.from') && $pay->toDateString() <= config('malaysia-payroll.to') && $pay >= $to, 'Choose a wage period and pay date covered by the verified 2026 rules.');
-        $profiles = HrRecord::query()->where('kind', 'compensation')->where('employee_id', $employee->id)->where('company_id', $company->id)->where('state', 'approved')->orderByDesc('id')->get();
+        $profiles = HrRecord::query()->where('kind', 'compensation')->where('employee_id', $employee->id)->where('company_id', $company->id)->whereIn('state', ['saved', 'submitted', 'approved'])->orderByDesc('id')->get();
         $profile = $profiles->first(fn ($row) => $row->data['effective_from'] <= $input['period_from'] && $row->data['effective_to'] >= $input['period_to']);
-        $this->check((bool) $profile, 'Create and independently approve this employee’s compensation profile covering the entire period.');
+        $this->check((bool) $profile, 'Save this employee’s compensation profile with effective dates covering the entire period.');
         $data = $profile->data;
         $this->check(! $profiles->contains(fn ($row) => $row->id > $profile->id && $row->data['effective_from'] <= $input['period_to'] && $row->data['effective_to'] >= $input['period_from']), 'A newer compensation version changes within this period. A consolidated specialist calculation is required.');
         $activeFrom = max($from->toDateString(), $data['employment_start']);
@@ -160,6 +161,7 @@ class AutomaticPayroll
             'base_minor'  => $base, 'gross_minor' => $gross, 'deductions_minor' => $deductions, 'employer_minor' => collect($lines)->where('category', 'employer')->sum('amount_minor'), 'net_minor' => $gross - $deductions, 'lines' => $lines,
             'automatic'   => ['profile_id' => $profile->id, 'profile_revision' => $profile->revision, 'profile_snapshot' => $data, 'rule_version' => config('malaysia-payroll.version'), 'rules_hash' => hash('sha256', json_encode(config('malaysia-payroll'))), 'wage_month' => $from->format('Y-m'), 'tax_month' => $pay->format('Y-m'), 'calendar_days' => $from->daysInMonth, 'employed_days' => $employedDays, 'unpaid_days' => $unpaidUnits / 2, 'eligible_days' => $eligibleUnits / 2, 'epf_wages_minor' => $epfWages, 'socso_wages_minor' => $socsoWages, 'eis_wages_minor' => $eisWages, 'taxable_minor' => $taxable, 'epf_employee_minor' => $epfEmployee, 'pcb_minor' => $pcb['amount'], 'zakat_minor' => $zakat, 'ytd' => $ytd, 'pcb_trace' => $pcb, 'leave_revisions' => $leaves->map(fn ($leave) => $leave->getAttributes())->all()],
         ];
+        $result['payslip_snapshot'] = app(PayslipTemplate::class)->employeeSnapshot($employee, $data);
         $result['calculation_hash'] = hash('sha256', json_encode($result, JSON_THROW_ON_ERROR));
 
         return $result;
