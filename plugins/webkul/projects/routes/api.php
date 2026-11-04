@@ -4,6 +4,7 @@ use App\Http\Controllers\BusinessWorkspaceController;
 use App\Http\Controllers\HrWorkflowController;
 use App\Http\Controllers\NativeFinanceController;
 use App\Http\Controllers\NativeHrController;
+use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
 use Webkul\Project\Http\Controllers\API\V1\ProjectController;
@@ -29,6 +30,14 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    $wo = WorkOrderController::class;
+    Route::get('work-orders/form', [$wo, 'form']);
+    Route::get('work-orders', [$wo, 'index']);
+    Route::post('work-orders', [$wo, 'store']);
+    Route::get('work-orders/{record}', [$wo, 'show'])->whereNumber('record');
+    Route::post('work-orders/{record}/versions', [$wo, 'store'])->whereNumber('record');
+    Route::put('work-orders/{record}/versions/{version}', [$wo, 'update'])->whereNumber('record')->whereNumber('version');
+    Route::post('work-orders/{record}/versions/{version}/approve', [$wo, 'approve'])->whereNumber('record')->whereNumber('version');
     $finance = NativeFinanceController::class;
     Route::get('finance/configuration', [$finance, 'configuration']);
     Route::post('finance/configuration', [$finance, 'saveConfiguration']);
@@ -37,6 +46,7 @@ $progressRoutes = function (): void {
         Route::post('/', [$finance, 'store']);
         Route::get('{record}', [$finance, 'show'])->whereNumber('record');
         Route::put('{record}', [$finance, 'update'])->whereNumber('record');
+        Route::post('{record}/cancel', [$finance, 'cancel'])->whereNumber('record');
         Route::post('{record}/confirm', [$finance, 'confirm'])->whereNumber('record');
         Route::get('{record}/print', [$finance, 'print'])->whereNumber('record');
     });

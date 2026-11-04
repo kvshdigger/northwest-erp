@@ -35,6 +35,7 @@ class ProjectServiceProvider extends PackageServiceProvider
                 '2025_09_24_062711_remove_tags_column_from_projects_tasks_table',
                 '2026_10_30_000001_add_project_specific_progress_activities',
                 '2026_11_03_092918_create_project_progress_v2_tables',
+                '2026_11_04_111736_add_work_order_authority_to_progress_reports',
             ])
             ->runsMigrations()
             ->hasSettings([

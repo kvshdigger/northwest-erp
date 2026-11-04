@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { authoriseBrowserRoute } from '../../utils/work-orders';
 
 const enabled = process.env.PROJECT_PROGRESS_E2E === '1';
 test.skip(!enabled, 'Requires an explicitly configured isolated V2 preview with assigned projects.');
@@ -17,10 +18,8 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     const csrfFailure = await page.request.post('/admin/v2/project-progress/api/projects/' + project + '/routes', { data: { name: 'Rejected without CSRF' } });
     expect(csrfFailure.status()).toBe(419);
     const suffix = Date.now().toString();
-    await page.getByText('Project setup', { exact: true }).click();
-    await page.getByRole('button', { name: 'Add route', exact: true }).click();
-    await page.locator('#setupRoute').fill('Browser route ' + suffix);
-    await page.locator('#saveSetup').click();
+    const authorisedRoute = await authoriseBrowserRoute(page, project, suffix);
+    await page.reload();
     await expect(page.locator('#connectionStatus')).toContainText('Connected ·');
     await page.locator('#trackerConfig').click();
     await page.locator('#addColumn').click();
@@ -49,7 +48,7 @@ test('persists custom settings, routes and daily progress through the ERP sessio
     await row.getByRole('checkbox').check();
     await page.locator('[data-page="tracker"]').click();
     await page.locator('#trackerNew').click();
-    await page.locator('#route').selectOption({ label: 'Browser route ' + suffix });
+    await page.locator('#route').selectOption(authorisedRoute);
     await page.locator('#team').fill('Browser site team');
     const activity = page.locator('.section').filter({ hasText: 'Browser measurement ' + suffix });
     await activity.locator('.dynamic-input').fill('12.5');

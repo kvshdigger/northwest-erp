@@ -67,6 +67,7 @@ class PurchaseServiceProvider extends PackageServiceProvider
                 '2026_04_23_043411_add_procurement_group_id_column_in_purchases_orders_table_from_purchases',
                 '2026_04_23_043412_add_procurement_group_id_column_in_purchases_order_lines_table_from_purchases',
                 '2026_08_03_130000_seed_purchases_sequences',
+                '2026_11_04_111737_add_work_order_link_to_purchase_orders',
             ])
             ->runsMigrations()
             ->hasSettings([

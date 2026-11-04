@@ -25,7 +25,7 @@ class NativeFinanceRequest extends FormRequest
 
     public function rules(): array
     {
-        if ($this->is('*/confirm')) {
+        if (($this->is('*/confirm') || $this->is('*/cancel'))) {
             return ['revision' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/']];
         }
         $edit = (bool) $this->route('record');
@@ -55,7 +55,13 @@ class NativeFinanceRequest extends FormRequest
                 $rules += ['values.amount' => ['required', 'numeric', 'gt:0', 'max:99999999', 'decimal:0,4'], 'values.payment_method_line_id' => ['required', 'integer', 'min:1']];
             } else {
                 $fields .= ',due_date,terms,lines';
-                $rules += ['values.due_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:values.date'], 'values.terms' => ['nullable', 'string', 'max:8000'], 'values.lines' => ['required', 'array', 'min:1', 'max:100'], 'values.lines.*' => ['required', 'array:item_id,description,quantity,unit_price,discount,account_id,tax_ids'], 'values.lines.*.item_id' => ['required', 'integer', 'min:1'], 'values.lines.*.description' => ['required', 'string', 'max:2000'], 'values.lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:1000000', 'decimal:0,2'], 'values.lines.*.unit_price' => ['required', 'numeric', 'min:0', 'max:9999999', 'decimal:0,2'], 'values.lines.*.discount' => ['nullable', 'numeric', 'between:0,100', 'decimal:0,2'], 'values.lines.*.tax_ids' => ['nullable', 'array', 'max:10'], 'values.lines.*.tax_ids.*' => ['integer', 'distinct', 'min:1'], 'values.lines.*.account_id' => [$kind === 'purchase-orders' ? 'nullable' : 'required', 'integer', 'min:1']];
+                if ($kind === 'purchase-orders') {
+                    $fields .= ',work_order_id,work_order_version_id';
+                    $rules['values.work_order_version_id'] = ['required_with:values.work_order_id', 'nullable', 'integer', 'min:1'];
+                    $rules['values.work_order_id'] = ['nullable', 'integer', 'min:1'];
+                }
+                $rules['values.lines.*.work_order_line_key'] = [$kind === 'purchase-orders' ? 'nullable' : 'prohibited', 'uuid'];
+                $rules += ['values.due_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:values.date'], 'values.terms' => ['nullable', 'string', 'max:8000'], 'values.lines' => ['required', 'array', 'min:1', 'max:100'], 'values.lines.*' => ['required', 'array:item_id,description,quantity,unit_price,discount,account_id,tax_ids,work_order_line_key'], 'values.lines.*.item_id' => ['required', 'integer', 'min:1'], 'values.lines.*.description' => ['required', 'string', 'max:2000'], 'values.lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:1000000', 'decimal:0,2'], 'values.lines.*.unit_price' => ['required', 'numeric', 'min:0', 'max:9999999', 'decimal:0,2'], 'values.lines.*.discount' => ['nullable', 'numeric', 'between:0,100', 'decimal:0,2'], 'values.lines.*.tax_ids' => ['nullable', 'array', 'max:10'], 'values.lines.*.tax_ids.*' => ['integer', 'distinct', 'min:1'], 'values.lines.*.account_id' => [$kind === 'purchase-orders' ? 'nullable' : 'required', 'integer', 'min:1']];
             }
         }
         $rules['values'] = ['required', 'array:'.$fields];

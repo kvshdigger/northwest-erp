@@ -2,6 +2,7 @@
 
 namespace Webkul\Project\Models;
 
+use App\Models\WorkOrderRoute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,7 @@ class ProgressReport extends Model
 
     protected function casts(): array
     {
-        return ['report_date' => 'date'];
+        return ['report_date' => 'date', 'chainage_from' => 'decimal:3', 'chainage_to' => 'decimal:3'];
     }
 
     protected static function newFactory(): ProgressReportFactory
@@ -34,6 +35,11 @@ class ProgressReport extends Model
     public function route(): BelongsTo
     {
         return $this->belongsTo(ProgressRoute::class);
+    }
+
+    public function workOrderRoute(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderRoute::class, 'work_order_route_id');
     }
 
     public function entries(): HasMany

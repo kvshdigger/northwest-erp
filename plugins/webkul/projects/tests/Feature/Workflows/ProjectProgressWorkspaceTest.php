@@ -2,11 +2,14 @@
 
 use Illuminate\Support\Str;
 use Webkul\Project\Models\ProgressMembership;
+use Webkul\Project\Models\ProgressRoute;
 use Webkul\Project\Models\Project;
 use Webkul\Security\Models\User;
 
 require_once __DIR__.'/../../../../support/tests/Helpers/SecurityHelper.php';
 require_once __DIR__.'/../../../../support/tests/Helpers/TestBootstrapHelper.php';
+
+require_once __DIR__.'/../../WorkOrderFixtures.php';
 
 beforeEach(function (): void {
     TestBootstrapHelper::ensurePluginInstalled('projects');
@@ -38,7 +41,7 @@ it('connects session-based project setup, publication, entry storage and tracker
     ], 'formula' => 'length * width', 'outputField' => 'length'];
     $activity = $this->postJson($base.'activities', ['configuration' => $configuration, 'revision' => 0])->assertCreated()->json('data');
     $this->postJson($base.'activities/'.$activity['id'].'/publish', ['revision' => $activity['revision']])->assertOk();
-    $this->postJson($base.'reports', ['route_id' => $route, 'report_date' => '2026-11-03', 'team' => 'Site team', 'submission_key' => (string) Str::uuid(), 'entries' => [
+    $this->postJson($base.'reports', ['work_order_route_id' => authoriseProgressTestRoute($project, ProgressRoute::findOrFail($route)), 'chainage_from' => '0', 'chainage_to' => '10', 'route_id' => $route, 'report_date' => '2026-11-03', 'team' => 'Site team', 'submission_key' => (string) Str::uuid(), 'entries' => [
         ['activity_id' => $activity['id'], 'version' => 1, 'inputs' => ['length' => '0.1', 'width' => '3']],
     ]])->assertCreated()->assertJsonPath('data.entries.0.result', '0.300000');
     $this->getJson($base.'workspace')->assertOk()->assertJsonPath('activities.0.published.configuration.fields.0.name', 'User length title');

@@ -74,6 +74,9 @@ class BusinessWorkspace
             $sections[] = $this->section($user, $module, $key);
         }
 
+        if ($module === 'finance' && app(WorkOrders::class)->financialAccess($user)) {
+            $sections[] = ['key' => 'work-orders', 'title' => 'Work Orders & margins', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
+        }
         if ($module === 'finance' && app(FinanceDocuments::class)->canConfigure($user)) {
             $sections[] = ['key' => 'configuration', 'title' => 'PO / Invoice configuration', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
         }

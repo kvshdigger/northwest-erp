@@ -2,6 +2,7 @@
 
 namespace Webkul\Project\Services;
 
+use App\Services\WorkOrders;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -75,12 +76,13 @@ class ProgressWorkflow
             if ($existing) {
                 abort_if((int) $existing->created_by !== (int) $actor->id || ! hash_equals($existing->payload_hash, $hash), 409, 'Submission key was already used for a different report.');
 
-                return $existing->load(['route', 'entries.version']);
+                return $existing->load(['route', 'entries.version', 'workOrderRoute.version.workOrder']);
             }
             $route = ProgressRoute::query()->where('project_id', $project->id)->where('is_active', true)->find($data['route_id']);
             if (! $route) {
                 throw ValidationException::withMessages(['route_id' => 'Select an active route in this project.']);
             }
+            $authority = app(WorkOrders::class)->progress($project, $data);
             $activities = ProgressActivity::query()->where('project_id', $project->id)->where('is_active', true)
                 ->whereIn('id', array_column($data['entries'], 'activity_id'))->with('published')->get()->keyBy('id');
             $prepared = [];
@@ -99,6 +101,7 @@ class ProgressWorkflow
                 ];
             }
             $report = ProgressReport::query()->create([
+                ...$authority,
                 'project_id'     => $project->id, 'route_id' => $route->id, 'report_date' => $data['report_date'],
                 'team'           => $data['team'], 'location' => $data['location'] ?? null,
                 'submission_key' => $data['submission_key'], 'payload_hash' => $hash, 'created_by' => $actor->id,
@@ -106,7 +109,7 @@ class ProgressWorkflow
             $report->entries()->createMany($prepared);
             $this->audit($project, $actor, 'report_created', 'report', $report->id, null, ['entries' => count($prepared), 'submission_key' => $report->submission_key]);
 
-            return $report->load(['route', 'entries.version']);
+            return $report->load(['route', 'entries.version', 'workOrderRoute.version.workOrder']);
         });
     }
 

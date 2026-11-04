@@ -13,6 +13,8 @@ use Webkul\Support\Models\Company;
 require_once __DIR__.'/../../../../../support/tests/Helpers/SecurityHelper.php';
 require_once __DIR__.'/../../../../../support/tests/Helpers/TestBootstrapHelper.php';
 
+require_once __DIR__.'/../../../WorkOrderFixtures.php';
+
 beforeEach(function (): void {
     TestBootstrapHelper::ensurePluginInstalled('projects');
     config(['project-progress.enabled' => true]);
@@ -51,7 +53,7 @@ function progressPayload(Project $project, array $activity, ?ProgressRoute $rout
 {
     $route ??= ProgressRoute::factory()->create(['project_id' => $project->id]);
 
-    return ['route_id' => $route->id, 'report_date' => '2026-11-03', 'team' => 'Team A', 'submission_key' => (string) Str::uuid(), 'entries' => [
+    return ['work_order_route_id' => authoriseProgressTestRoute($project, $route), 'chainage_from' => '0', 'chainage_to' => '10', 'route_id' => $route->id, 'report_date' => '2026-11-03', 'team' => 'Team A', 'submission_key' => (string) Str::uuid(), 'entries' => [
         ['activity_id' => $activity['id'], 'version' => $activity['published']['version'], 'inputs' => ['start' => '0.1', 'end' => '10.1', 'width' => '2.5']],
     ]];
 }
@@ -220,7 +222,7 @@ it('creates project-specific routes and prevents duplicate names regardless of c
     $project = progressProject();
     $this->postJson(progressUrl($project, 'routes'), ['name' => 'North route'])->assertCreated()->assertJsonPath('data.name', 'North route');
     $this->postJson(progressUrl($project, 'routes'), ['name' => 'NORTH ROUTE'])->assertUnprocessable();
-    $this->getJson(progressUrl($project, 'workspace'))->assertOk()->assertJsonPath('routes.0.name', 'North route');
+    $this->getJson(progressUrl($project, 'workspace'))->assertOk()->assertJsonCount(0, 'routes');
 });
 
 it('lets project managers assign members but not grant another company access', function (): void {

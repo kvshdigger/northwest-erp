@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\BusinessEvent;
+use App\Models\WorkOrder;
+use App\Models\WorkOrderAllocation;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +22,7 @@ use Webkul\Partner\Models\Partner;
 use Webkul\Product\Models\Category;
 use Webkul\Product\Models\Product;
 use Webkul\Purchase\Facades\PurchaseOrder as Purchasing;
+use Webkul\Purchase\Models\Order;
 use Webkul\Purchase\Models\PurchaseOrder;
 use Webkul\Security\Models\User;
 use Webkul\Support\Models\Currency;
@@ -60,7 +63,7 @@ class NativeFinance
         return $row;
     }
 
-    public function form(User $user, string $kind, int $companyId): array
+    public function form(User $user, string $kind, int $companyId, ?int $orderId = null): array
     {
         abort_unless($this->available($user, $kind), 403);
         $company = app(FinanceDocuments::class)->company($user, $companyId);
@@ -73,6 +76,7 @@ class NativeFinance
             'taxes'             => $options(Tax::query()->where('company_id', $companyId)->where('is_active', true)->where('type_tax_use', in_array($kind, ['purchase-orders', 'bills'], true) ? 'purchase' : 'sale'), ['amount']),
             'journals'          => $options($journals), 'accounts' => $options(Account::query()->whereHas('companies', fn ($q) => $q->whereKey($companyId))->where('deprecated', false)->whereIn('account_type', $kind === 'bills' ? Account::expenseTypes() : Account::incomeTypes())),
             'methods'           => PaymentMethodLine::query()->whereHas('journal', fn ($q) => $q->where('company_id', $companyId)->whereIn('type', ['bank', 'cash']))->whereHas('paymentMethod', fn ($q) => $q->where('payment_type', 'inbound'))->get(['id', 'name', 'journal_id'])->toArray(),
+            'work_orders'       => $kind === 'purchase-orders' ? app(WorkOrderPurchasing::class)->options($user, $companyId, $orderId) : [],
             'uoms'              => $options(UOM::query()), 'categories' => $options(Category::query())];
         $config = app(FinanceDocuments::class)->snapshot($company);
         $class = $this->model($kind);
@@ -110,7 +114,12 @@ class NativeFinance
 
     public function canConfirm(User $user, string $kind, Model $row): bool
     {
-        return $kind !== 'items' && ($this->editable($user, $kind, $row) || ($kind === 'purchase-orders' && $this->state($row) === 'to approve' && $user->can('update', $row) && Purchasing::canUserApprove($user)));
+        return $kind !== 'items' && ($this->editable($user, $kind, $row) || ($kind === 'purchase-orders' && $this->state($row) === 'to_approve' && $user->can('update', $row) && Purchasing::canUserApprove($user)));
+    }
+
+    public function canCancel(User $user, string $kind, Model $row): bool
+    {
+        return $kind === 'purchase-orders' && $row->company_id && $user->can('update', $row) && in_array($this->state($row), ['draft', 'sent', 'to_approve'], true);
     }
 
     public function detail(User $user, string $kind, Model $row): array
@@ -131,17 +140,22 @@ class NativeFinance
             $values['reference'] = $row->{$po ? 'partner_reference' : 'reference'};
             $values['terms'] = $row->{$po ? 'description' : 'narration'};
             $lines = $po ? $row->lines : $row->invoiceLines;
-            $values['lines'] = $lines->map(fn ($line) => ['item_id' => $line->product_id, 'description' => $line->name, 'quantity' => (string) $line->{$po ? 'product_qty' : 'quantity'}, 'unit_price' => (string) $line->{$po ? 'price_unit' : 'price_unit'}, 'discount' => (string) ($line->discount ?? 0), 'account_id' => $line->account_id, 'tax_ids' => $line->taxes->pluck('id')->all()])->all();
+            $allocations = $po ? WorkOrderAllocation::query()->with('version')->where('order_id', $row->id)->get()->keyBy('order_line_id') : collect();
+            if ($po) {
+                $values['work_order_id'] = $row->work_order_id;
+                $values['work_order_version_id'] = $allocations->first()?->version_id;
+            }
+            $values['lines'] = $lines->map(fn ($line) => [...($po ? ['work_order_line_key' => $allocations->get($line->id)?->source_key, 'work_order_route' => app(WorkOrderPurchasing::class)->sourceLabel($allocations->get($line->id))] : []), 'item_id' => $line->product_id, 'description' => $line->name, 'quantity' => (string) $line->{$po ? 'product_qty' : 'quantity'}, 'unit_price' => (string) $line->{$po ? 'price_unit' : 'price_unit'}, 'discount' => (string) ($line->discount ?? 0), 'account_id' => $line->account_id, 'tax_ids' => $line->taxes->pluck('id')->all()])->all();
         }
 
-        return ['id' => $row->id, 'kind' => $kind, 'title' => self::TITLES[$kind], 'name' => $row->name, 'state' => $kind === 'items' ? 'Active' : $this->state($row), 'values' => $values, 'revision' => $this->revision($row), 'can_edit' => $this->editable($user, $kind, $row), 'can_confirm' => $this->canConfirm($user, $kind, $row), 'total' => (string) ($row->{$po ? 'total_amount' : ($kind === 'payments' ? 'amount' : 'amount_total')} ?? ''), 'currency' => $row->currency?->name, 'can_print' => $kind !== 'items' && $kind !== 'payments'];
+        return ['id' => $row->id, 'kind' => $kind, 'title' => self::TITLES[$kind], 'name' => $row->name, 'state' => $kind === 'items' ? 'Active' : $this->state($row), 'values' => $values, 'work_order' => $po && $row->work_order_id ? ['reference' => WorkOrder::findOrFail($row->work_order_id)->reference, 'versions' => $allocations->pluck('version.number')->unique()->values()->all()] : null, 'revision' => $this->revision($row), 'can_edit' => $this->editable($user, $kind, $row), 'can_confirm' => $this->canConfirm($user, $kind, $row), 'total' => (string) ($row->{$po ? 'total_amount' : ($kind === 'payments' ? 'amount' : 'amount_total')} ?? ''), 'currency' => $row->currency?->name, 'can_cancel' => $this->canCancel($user, $kind, $row), 'can_print' => $kind !== 'items' && $kind !== 'payments'];
     }
 
     public function revision(Model $row): string
     {
         $lines = method_exists($row, 'lines') ? $row->lines()->with('taxes')->get()->toArray() : [];
 
-        return hash('sha256', json_encode([$row->getRawOriginal(), $lines], JSON_THROW_ON_ERROR));
+        return hash('sha256', json_encode([$row->getRawOriginal(), $lines, $row instanceof Order ? WorkOrderAllocation::where('order_id', $row->id)->get()->toArray() : []], JSON_THROW_ON_ERROR));
     }
 
     private function validOption(array $options, mixed $id, string $field): void
@@ -152,6 +166,11 @@ class NativeFinance
     }
 
     public function save(User $user, string $kind, array $input, ?int $id = null): Model
+    {
+        return app(WorkOrderPurchasing::class)->run(fn () => $this->persist($user, $kind, $input, $id));
+    }
+
+    private function persist(User $user, string $kind, array $input, ?int $id = null): Model
     {
         abort_unless($this->available($user, $kind), 403);
         $class = $this->model($kind);
@@ -176,7 +195,8 @@ class NativeFinance
                 Gate::forUser($user)->authorize('view', $row);
             }
             $data = $input['values'];
-            $form = $this->form($user, $kind, $company->id);
+            $form = $this->form($user, $kind, $company->id, $kind === 'purchase-orders' ? $id : null);
+            $workAllocations = $kind === 'purchase-orders' ? app(WorkOrderPurchasing::class)->prepare($user, $data, $id ? $row : null) : [];
             if ($kind === 'items') {
                 $this->validOption($form['lookups']['categories'], $data['category_id'], 'values.category_id');
                 foreach (['uom_id', 'uom_po_id'] as $field) {
@@ -194,7 +214,7 @@ class NativeFinance
                     $this->validOption(array_filter($form['lookups']['methods'], fn ($m) => $m['journal_id'] == $data['journal_id']), $data['payment_method_line_id'], 'values.payment_method_line_id');
                     $values += ['journal_id' => $data['journal_id'], 'payment_method_line_id' => $data['payment_method_line_id'], 'amount' => $data['amount'], 'date' => $data['date'], 'memo' => $data['reference'] ?? null, 'payment_type' => 'inbound', 'partner_type' => 'customer', 'state' => 'draft'];
                 } elseif ($po) {
-                    $values += ['ordered_at' => $data['date'], 'planned_at' => $data['due_date'] ?? null, 'partner_reference' => $data['reference'] ?? null, 'description' => $data['terms'] ?? null, 'user_id' => $user->id];
+                    $values += ['work_order_id' => $data['work_order_id'] ?? null, 'ordered_at' => $data['date'], 'planned_at' => $data['due_date'] ?? null, 'partner_reference' => $data['reference'] ?? null, 'description' => $data['terms'] ?? null, 'user_id' => $user->id];
                     if (! $id) {
                         $values += ['state' => 'draft', 'creator_id' => $user->id, 'name' => app(FinanceDocuments::class)->next($company, 'po', $data['date'])];
                     }
@@ -233,6 +253,9 @@ class NativeFinance
                         $attributes += ['quantity' => $line['quantity'], 'account_id' => $line['account_id'], 'display_type' => 'product', 'journal_id' => $data['journal_id']];
                         $saved = $row->invoiceLines()->create($attributes);
                     }
+                    if ($po && isset($workAllocations[$index])) {
+                        WorkOrderAllocation::create([...$workAllocations[$index], 'order_id' => $row->id, 'order_line_id' => $saved->id]);
+                    }
                     $saved->taxes()->sync($line['tax_ids'] ?? []);
                 }
                 $row = $po ? Purchasing::computePurchaseOrder($row->fresh()) : Accounting::computeAccountMove($row->fresh());
@@ -245,12 +268,20 @@ class NativeFinance
 
     public function confirm(User $user, string $kind, int $id, string $revision): Model
     {
+        return app(WorkOrderPurchasing::class)->run(fn () => $this->confirmRecord($user, $kind, $id, $revision));
+    }
+
+    private function confirmRecord(User $user, string $kind, int $id, string $revision): Model
+    {
         return (new BusinessEvent)->getConnection()->transaction(function () use ($user, $kind, $id, $revision): Model {
+            $visible = $this->record($user, $kind, $id);
+            app(FinanceDocuments::class)->company($user, $visible->company_id, true);
             $row = $this->record($user, $kind, $id, true);
             abort_unless($this->canConfirm($user, $kind, $row), 403);
             abort_unless(hash_equals($this->revision($row), $revision), 409, 'This record changed. Reopen it before confirming.');
             if ($kind === 'purchase-orders') {
                 abort_unless($row->lines()->exists(), 422, 'Add at least one item.');
+                app(WorkOrderPurchasing::class)->assertExisting($user, $row);
                 $row = Purchasing::confirmPurchaseOrder($row);
             } elseif ($kind === 'payments') {
                 $row = Accounting::postPayment($row);
@@ -266,6 +297,24 @@ class NativeFinance
 
             return $row->fresh();
         });
+    }
+
+    public function cancel(User $user, int $id, string $revision): Model
+    {
+        return app(WorkOrderPurchasing::class)->run(fn () => (new BusinessEvent)->getConnection()->transaction(function () use ($user, $id, $revision): Model {
+            $visible = $this->record($user, 'purchase-orders', $id);
+            app(FinanceDocuments::class)->company($user, $visible->company_id, true);
+            $row = $this->record($user, 'purchase-orders', $id, true);
+            abort_unless($this->canCancel($user, 'purchase-orders', $row), 403, 'Only unconfirmed POs can be cancelled here.');
+            abort_unless(hash_equals($this->revision($row), $revision), 409, 'Reopen the PO before cancelling.');
+            if ($row->work_order_id) {
+                WorkOrder::whereKey($row->work_order_id)->lockForUpdate()->firstOrFail();
+            }
+            $row = Purchasing::cancelPurchaseOrder($row);
+            $this->audit($user, 'purchase-orders', $row, 'cancelled', ['work_order_id' => $row->work_order_id]);
+
+            return $row->fresh();
+        }));
     }
 
     private function audit(User $user, string $kind, Model $row, string $action, array $changes, ?string $key = null, ?string $hash = null): void

@@ -13,6 +13,7 @@ class ProgressReportResource extends JsonResource
         return [
             'id'             => $this->id, 'project_id' => $this->project_id,
             'route'          => ['id' => $this->route->id, 'name' => $this->route->name],
+            'work_order'     => $this->work_order_route_id ? ['reference' => $this->workOrderRoute->version->workOrder->reference, 'version' => $this->workOrderRoute->version->number, 'chainage_from' => $this->chainage_from, 'chainage_to' => $this->chainage_to] : null,
             'report_date'    => $this->report_date->toDateString(), 'team' => $this->team, 'location' => $this->location,
             'submission_key' => $this->submission_key,
             'entries'        => $this->entries->map(fn (ProgressEntry $entry): array => [
