@@ -26,7 +26,7 @@ return [
             'pages'              => true,
             'widgets'            => true,
             'resources'          => true,
-            'custom_permissions' => false,
+            'custom_permissions' => true,
         ],
     ],
 
@@ -232,7 +232,12 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        'v2_hr_manage_attendance', 'v2_hr_approve_attendance',
+        'v2_hr_manage_payroll', 'v2_hr_approve_payroll',
+        'v2_hr_manage_documents', 'v2_hr_approve_documents',
+        'v2_hr_manage_expenses', 'v2_hr_approve_expenses',
+    ],
 
     /*
     |--------------------------------------------------------------------------

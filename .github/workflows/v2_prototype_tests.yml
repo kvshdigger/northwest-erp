@@ -35,5 +35,6 @@ jobs:
           node --check docs/v2-prototype/api.js
           node --check docs/v2-prototype/business.js
           node --check docs/v2-prototype/hr.js
+          node --check docs/v2-prototype/hr-workflows.js
       - name: Test configuration, formulas and daily aggregation
         run: node --test tests/Unit/ProgressConfiguration.test.mjs tests/Unit/ProgressApi.test.mjs

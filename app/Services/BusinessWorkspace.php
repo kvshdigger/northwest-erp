@@ -71,17 +71,12 @@ class BusinessWorkspace
             $sections[] = $this->section($user, $module, $key);
         }
 
-        return ['scope' => 'company', 'sections' => $sections, 'planned' => $module === 'finance' ? [
+        return ['scope' => 'company', 'sections' => $module === 'people' ? [...$sections, ...app(HrWorkflows::class)->catalog($user)] : $sections, 'planned' => $module === 'finance' ? [
             ['title' => 'Project budgets & cost control', 'description' => 'Budget versions, commitments, actual cost and budget-versus-actual reports.'],
             ['title' => 'Progress claims & retention', 'description' => 'Verified quantities, claim certificates, retention, variations and payment tracking.'],
             ['title' => 'Expenses & reimbursements', 'description' => 'Receipts, cost categories, project allocation and approval before posting.'],
             ['title' => 'Cash flow & reporting', 'description' => 'Receivables/payables ageing, bank reconciliation and currency-aware project reports.'],
-        ] : [
-            ['title' => 'Attendance & timesheets', 'description' => 'Daily attendance, site assignments, overtime requests and supervisor approval.'],
-            ['title' => 'Payroll & payslips', 'description' => 'Approved earnings, deductions, statutory configuration, payroll review and restricted payslip access.'],
-            ['title' => 'Employment documents', 'description' => 'Contracts, permits, expiry reminders, onboarding and offboarding checklists.'],
-            ['title' => 'Employee self-service', 'description' => 'Own profile, leave balances, requests, expenses and private payslips.'],
-        ]];
+        ] : []];
     }
 
     public function records(User $user, string $module, string $section, array $filters): array

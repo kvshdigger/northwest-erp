@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Webkul\Employee\Models\Employee;
+use Webkul\PluginManager\Package;
 use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Models\User;
 use Webkul\TimeOff\Enums\State;
@@ -64,13 +65,16 @@ class NativeLeave
         return $allowed && in_array($leave->state, [State::CONFIRM, State::VALIDATE_ONE], true) ? ['approve', 'refuse'] : [];
     }
 
-    public function save(User $user, array $data, ?int $id): Leave
+    public function save(User $user, array $data, ?int $id, bool $self = false): Leave
     {
         $hr = app(NativeHr::class);
+        if ($self) {
+            abort_unless(! $id && Package::isPluginInstalled('time-off') && Package::getPackagePlugin('time-off')?->is_active && app(HrWorkflows::class)->ownEmployee($user)?->id === (int) $data['employee_id'], 403);
+        }
 
-        return (new Leave)->getConnection()->transaction(function () use ($user, $data, $id, $hr): Leave {
+        return (new Leave)->getConnection()->transaction(function () use ($user, $data, $id, $hr, $self): Leave {
             $actor = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            abort_unless($actor->is_active && $hr->available($user, 'leave'), 403);
+            abort_unless($actor->is_active && ($self || $hr->available($user, 'leave')), 403);
             $key = $data['request_id'] ?? null;
             $revision = $data['revision'] ?? null;
             unset($data['request_id'], $data['revision']);
@@ -79,14 +83,18 @@ class NativeLeave
             if (! $id && $receipt = BusinessEvent::query()->where('actor_id', $user->id)->where('request_id', $key)->first()) {
                 abort_unless($receipt->kind === 'leave' && hash_equals($receipt->payload_hash, $hash), 409, 'Submission key already used.');
 
-                return $hr->record($user, 'leave', $receipt->record_id);
+                return $self ? Leave::query()->where('employee_id', $data['employee_id'])->findOrFail($receipt->record_id) : $hr->record($user, 'leave', $receipt->record_id);
             }
             $employee = Employee::query()->whereIn('company_id', $hr->companyIds($user))->where('company_id', $data['company_id'])->lockForUpdate()->findOrFail($data['employee_id']);
-            Gate::forUser($user)->authorize('view', $employee);
+            if (! $self) {
+                Gate::forUser($user)->authorize('view', $employee);
+            }
             abort_unless($employee->is_active, 422, 'Choose an active employee.');
             $leave = $id ? $hr->record($user, 'leave', $id, true) : new Leave;
-            Gate::forUser($user)->authorize($id ? 'update' : 'create', $id ? $leave : Leave::class);
-            Gate::forUser($user)->authorize('view', $leave);
+            if (! $self) {
+                Gate::forUser($user)->authorize($id ? 'update' : 'create', $id ? $leave : Leave::class);
+                Gate::forUser($user)->authorize('view', $leave);
+            }
             if ($id) {
                 abort_unless(hash_equals($hr->revision($leave), $revision), 409, 'This leave request changed. Reopen it before saving.');
                 abort_unless($leave->state === State::CONFIRM, 409, 'Only pending requests can be edited.');

@@ -428,7 +428,11 @@
         workspace = null;
         render();
         applyCapabilities();
-        if (!selected) { connectionError(Error('No projects assigned. Ask your project manager to assign access.')); return; }
+        if (!selected) {
+            el('connectionStatus').textContent = 'Connected · No projects assigned. Company modules follow your permissions.';
+            el('connectionStatus').classList.remove('connection-error', 'hidden');
+            return;
+        }
         connectionError(Object.assign(Error('Loading project data…'), { loading: true }));
         try {
             const [loaded, tracker] = await Promise.all([api.project(selected, 'workspace'), api.project(selected, 'tracker?page=' + page)]);
