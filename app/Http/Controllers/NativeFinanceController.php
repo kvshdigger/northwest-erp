@@ -5,14 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\FinanceConfigurationRequest;
 use App\Http\Requests\NativeFinanceRequest;
 use App\Models\BusinessEvent;
+use App\Models\WorkOrderAllocation;
 use App\Services\FinanceDocuments;
 use App\Services\NativeFinance;
 use App\Services\NativeHr;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -100,6 +103,29 @@ class NativeFinanceController extends Controller
         $document = $this->finance->detail($request->user(), $kind, $row);
         $event = BusinessEvent::query()->where('kind', 'finance-'.$kind)->where('record_id', $record)->where('company_id', $row->company_id)->whereIn('action', ['created', 'updated', 'confirmed'])->latest('id')->first();
         $branding = $event?->changes['document'] ?? $this->documents->snapshot($this->documents->company($request->user(), $row->company_id));
+
+        if ($kind === 'purchase-orders') {
+            $row->loadMissing('lines.product');
+        }
+
+        if ($request->boolean('download') && $kind === 'purchase-orders') {
+            $pdf = Pdf::loadView('finance.document', ['document' => $document, 'branding' => $branding, 'partner' => $row->partner, 'row' => $row, 'pdf' => true])->setPaper('a4')->setOption('isRemoteEnabled', false);
+            $safe = fn (string $value): string => trim(preg_replace('/[^A-Za-z0-9-]+/', '-', Str::ascii($value)), '-');
+            $chainage = fn ($value): string => str_contains((string) $value, '.') ? rtrim(rtrim((string) $value, '0'), '.') : (string) $value;
+            $scopes = [];
+            foreach (WorkOrderAllocation::query()->with('version')->where('order_id', $record)->orderBy('id')->get() as $allocation) {
+                $data = $allocation->version->data;
+                $line = collect($data['lines'])->firstWhere('key', $allocation->source_key);
+                $route = $line ? collect($data['routes'])->firstWhere('key', $line['route_key']) : null;
+                if ($route) {
+                    $scope = $safe(Str::title($route['name'])).'_'.$chainage($route['chainage_from']).'-'.$chainage($route['chainage_to']);
+                    $scopes[$scope] = $scope;
+                }
+            }
+            $filename = $safe($document['name']).'_'.$safe(Str::title($row->partner?->name ?? 'Subcontractor')).'_'.($scopes ? implode('_', $scopes) : 'No-Route').'.pdf';
+
+            return $pdf->download($filename)->header('Cache-Control', 'private, no-store');
+        }
 
         return response()->view('finance.document', ['document' => $document, 'branding' => $branding, 'partner' => $row->partner, 'row' => $row])->header('Cache-Control', 'private, no-store')->header('Content-Security-Policy', "default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'none'")->header('X-Content-Type-Options', 'nosniff');
     }

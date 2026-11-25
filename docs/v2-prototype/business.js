@@ -36,6 +36,9 @@
                 host.innerHTML = '<h2>' + escape(item.title) + '</h2><p class="muted">' + escape(item.description) + '</p><div class="module-empty"><h3>' + (item.state === 'restricted' ? 'Access required' : 'Module not installed') + '</h3><p>' + (item.state === 'restricted' ? 'Ask your ERP administrator for the appropriate role. Project membership does not grant access to finance or employee records.' : 'An administrator must install this ERP module in the configured environment before records can be shown.') + '</p></div>';
                 return;
             }
+            if (module === 'finance' && state.section === 'vendors') {
+                await this.finance.vendors(host); return;
+            }
             if (module === 'finance' && state.section === 'work-orders') { await this.workOrders.render(host); return; }
             if (module === 'finance') { await this.finance.render(host, state.section); return; }
             if (item.workflow) { await this.operations.render(host, state.section); return; }

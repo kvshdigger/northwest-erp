@@ -7,6 +7,7 @@ use App\Services\WorkOrderPurchasing;
 use App\Services\WorkOrders;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Permission;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Webkul\Partner\Models\Partner;
 use Webkul\Product\Models\Product;
@@ -175,4 +176,38 @@ it('releases reservations when an unconfirmed PO awaiting approval is cancelled'
     $pending = $this->getJson($this->base.'finance/purchase-orders/'.$po['id'])->assertOk()->assertJsonPath('can_cancel', true)->json();
     $this->postJson($this->base.'finance/purchase-orders/'.$po['id'].'/cancel', ['revision' => $pending['revision']])->assertOk();
     $this->getJson($this->base.'work-orders/'.$wo['id'])->assertOk()->assertJsonPath('summary.lines.0.available', '1000.0000');
+});
+
+it('registers a typed Item atomically with its Work Order and reuses it on retry', function (): void {
+    $this->user->givePermissionTo(Permission::findOrCreate('create_product_product', 'web'));
+    $line = &$this->award['lines'][0];
+    $line['item_id'] = null;
+    $line['new_item_name'] = 'New awarded service';
+    $line['new_item_uom_id'] = $this->item->uom_id;
+    $payload = ['request_id'=>(string) Str::uuid(), 'values'=>$this->award];
+    $first = $this->postJson($this->base.'work-orders', $payload)->assertCreated()->json();
+    $item = Product::where('name', 'New awarded service')->sole();
+    expect($item->company_id)->toBe($this->project->company_id);
+    expect($first['versions'][0]['data']['lines'][0]['item_id'])->toBe($item->id);
+    $this->postJson($this->base.'work-orders', $payload)->assertSuccessful();
+    expect(Product::where('name', 'New awarded service')->count())->toBe(1);
+});
+
+it('edits an unreceived confirmed PO while retaining confirmation and award quantity limits', function (): void {
+    $wo = createWorkAward($this);
+    $po = $this->postJson($this->base.'finance/purchase-orders', awardPurchase($this, $wo))->assertCreated()->json();
+    $path = $this->base.'finance/purchase-orders/'.$po['id'];
+    $confirmed = $this->postJson($path.'/confirm', ['revision'=>$po['revision']])->assertOk()->json();
+    expect($confirmed['can_edit'])->toBeTrue();
+    $values = awardPurchase($this, $wo)['values'];
+    foreach ($values['lines'] as &$line) {
+        unset($line['work_order_route']);
+    }
+    unset($line);
+    $values['work_order_version_id'] = $wo['current_version_id'];
+    $values['lines'][0]['quantity'] = '700';
+    $saved = $this->putJson($path, ['revision'=>$confirmed['revision'], 'values'=>$values])->assertOk()->json();
+    expect($saved['state'])->toBe('purchase');
+    $values['lines'][0]['quantity'] = '1001';
+    $this->putJson($path, ['revision'=>$saved['revision'], 'values'=>$values])->assertUnprocessable();
 });

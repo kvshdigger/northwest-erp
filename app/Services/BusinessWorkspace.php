@@ -21,6 +21,8 @@ use Webkul\PluginManager\Package;
 use Webkul\Product\Filament\Resources\ProductResource;
 use Webkul\Product\Models\Product;
 use Webkul\Purchase\Filament\Admin\Clusters\Orders\Resources\PurchaseOrderResource;
+use Webkul\Purchase\Filament\Admin\Clusters\Orders\Resources\VendorResource;
+use Webkul\Purchase\Models\Partner;
 use Webkul\Purchase\Models\PurchaseOrder;
 use Webkul\Security\Models\User;
 use Webkul\TimeOff\Filament\Clusters\Management\Resources\TimeOffResource;
@@ -74,10 +76,18 @@ class BusinessWorkspace
             $sections[] = $this->section($user, $module, $key);
         }
 
+        if ($module === 'finance' && Package::isPluginInstalled('purchases')) {
+            $vendor = Partner::class;
+            $resource = VendorResource::class;
+            $allowed = $user->can('viewAny', $vendor);
+            $sections[] = ['key' => 'vendors', 'title' => 'Vendors & subcontractors', 'state' => $allowed ? 'available' : 'restricted', 'native' => true, 'can_create' => $allowed && $user->can('create', $vendor), 'url' => null, 'create_url' => null, 'description' => 'Register vendors and subcontractors for purchase orders.'];
+        }
+
         if ($module === 'finance' && app(WorkOrders::class)->financialAccess($user)) {
             $sections[] = ['key' => 'work-orders', 'title' => 'Work Orders & margins', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
         }
         if ($module === 'finance' && app(FinanceDocuments::class)->canConfigure($user)) {
+            $sections[] = ['key' => 'company-profile', 'title' => 'Company Profile', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
             $sections[] = ['key' => 'configuration', 'title' => 'PO / Invoice configuration', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
         }
 

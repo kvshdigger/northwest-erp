@@ -4,6 +4,7 @@ use App\Http\Controllers\BusinessWorkspaceController;
 use App\Http\Controllers\HrWorkflowController;
 use App\Http\Controllers\NativeFinanceController;
 use App\Http\Controllers\NativeHrController;
+use App\Http\Controllers\VendorWorkspaceController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 use Webkul\Project\Http\Controllers\API\V1\MilestoneController;
@@ -30,6 +31,9 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    Route::get('vendors', [VendorWorkspaceController::class, 'index']);
+    Route::post('vendors', [VendorWorkspaceController::class, 'save']);
+    Route::put('vendors/{record}', [VendorWorkspaceController::class, 'save'])->whereNumber('record');
     $wo = WorkOrderController::class;
     Route::get('work-orders/form', [$wo, 'form']);
     Route::get('work-orders', [$wo, 'index']);

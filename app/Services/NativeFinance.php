@@ -9,6 +9,7 @@ use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Webkul\Account\Facades\Account as Accounting;
 use Webkul\Account\Models\Account;
@@ -109,7 +110,11 @@ class NativeFinance
 
     public function editable(User $user, string $kind, Model $record): bool
     {
-        return $record->company_id && $user->can('update', $record) && ($kind === 'items' || in_array($this->state($record), ['draft', 'sent'], true));
+        $confirmedEditable = $kind === 'purchase-orders' && $this->state($record) === 'purchase'
+            && (! Schema::hasTable('purchases_order_operations') || ! $record->getConnection()->table('purchases_order_operations')->where('purchase_order_id', $record->id)->exists()) && ! $record->bills()->exists() && ! $record->accountMoves()->exists()
+            && ! $record->lines->contains(fn ($line) => (float) $line->qty_received > 0 || (float) $line->qty_invoiced > 0);
+
+        return $record->company_id && $user->can('update', $record) && ($kind === 'items' || in_array($this->state($record), ['draft', 'sent'], true) || $confirmedEditable);
     }
 
     public function canConfirm(User $user, string $kind, Model $row): bool
@@ -145,7 +150,7 @@ class NativeFinance
                 $values['work_order_id'] = $row->work_order_id;
                 $values['work_order_version_id'] = $allocations->first()?->version_id;
             }
-            $values['lines'] = $lines->map(fn ($line) => [...($po ? ['work_order_line_key' => $allocations->get($line->id)?->source_key, 'work_order_route' => app(WorkOrderPurchasing::class)->sourceLabel($allocations->get($line->id))] : []), 'item_id' => $line->product_id, 'description' => $line->name, 'quantity' => (string) $line->{$po ? 'product_qty' : 'quantity'}, 'unit_price' => (string) $line->{$po ? 'price_unit' : 'price_unit'}, 'discount' => (string) ($line->discount ?? 0), 'account_id' => $line->account_id, 'tax_ids' => $line->taxes->pluck('id')->all()])->all();
+            $values['lines'] = $lines->map(fn ($line) => [...($po ? ['expected_arrival' => substr((string) $line->getRawOriginal('planned_at'), 0, 10), 'work_order_line_key' => $allocations->get($line->id)?->source_key, 'work_order_route' => app(WorkOrderPurchasing::class)->sourceLabel($allocations->get($line->id))] : []), 'item_id' => $line->product_id, 'description' => $line->name, 'quantity' => (string) $line->{$po ? 'product_qty' : 'quantity'}, 'unit_price' => (string) $line->{$po ? 'price_unit' : 'price_unit'}, 'discount' => (string) ($line->discount ?? 0), 'account_id' => $line->account_id, 'tax_ids' => $line->taxes->pluck('id')->all()])->all();
         }
 
         return ['id' => $row->id, 'kind' => $kind, 'title' => self::TITLES[$kind], 'name' => $row->name, 'state' => $kind === 'items' ? 'Active' : $this->state($row), 'values' => $values, 'work_order' => $po && $row->work_order_id ? ['reference' => WorkOrder::findOrFail($row->work_order_id)->reference, 'versions' => $allocations->pluck('version.number')->unique()->values()->all()] : null, 'revision' => $this->revision($row), 'can_edit' => $this->editable($user, $kind, $row), 'can_confirm' => $this->canConfirm($user, $kind, $row), 'total' => (string) ($row->{$po ? 'total_amount' : ($kind === 'payments' ? 'amount' : 'amount_total')} ?? ''), 'currency' => $row->currency?->name, 'can_cancel' => $this->canCancel($user, $kind, $row), 'can_print' => $kind !== 'items' && $kind !== 'payments'];
@@ -188,7 +193,7 @@ class NativeFinance
             $row = $id ? $this->record($user, $kind, $id, true) : new $class;
             if ($id) {
                 abort_unless((int) $row->company_id === $company->id, 422, 'A saved record cannot change company.');
-                abort_unless($this->editable($user, $kind, $row), 403, 'Only drafts can be edited.');
+                abort_unless($this->editable($user, $kind, $row), 403, 'This record cannot be edited. Confirmed POs with receipts or bills require a controlled amendment.');
                 abort_unless(hash_equals($this->revision($row), $input['revision']), 409, 'This record changed. Reopen it before saving.');
             } else {
                 Gate::forUser($user)->authorize('create', $class);
@@ -246,7 +251,7 @@ class NativeFinance
                     }
                     $attributes = ['product_id' => $item->id, 'name' => $line['description'], 'price_unit' => $line['unit_price'], 'discount' => $line['discount'] ?? 0, 'company_id' => $company->id, 'currency_id' => $data['currency_id'], 'partner_id' => $data['partner_id'], 'uom_id' => $item->uom_id];
                     if ($po) {
-                        $attributes += ['product_qty' => $line['quantity'], 'product_uom_qty' => $line['quantity'], 'planned_at' => $data['due_date'] ?? $data['date']];
+                        $attributes += ['product_qty' => $line['quantity'], 'product_uom_qty' => $line['quantity'], 'planned_at' => $line['expected_arrival'] ?? $data['due_date'] ?? $data['date']];
                         $saved = $row->lines()->create($attributes);
                     } else {
                         $this->validOption($form['lookups']['accounts'], $line['account_id'], 'values.lines.'.$index.'.account_id');

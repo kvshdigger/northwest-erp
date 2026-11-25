@@ -13,12 +13,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 use Webkul\Partner\Models\Partner;
+use Webkul\Product\Models\Category;
 use Webkul\Product\Models\Product;
 use Webkul\Project\Models\ProgressRoute;
 use Webkul\Project\Models\Project;
 use Webkul\Project\Policies\ProgressAccess;
 use Webkul\Security\Models\User;
 use Webkul\Support\Models\Currency;
+use Webkul\Support\Models\UOM;
 
 class WorkOrders
 {
@@ -52,7 +54,8 @@ class WorkOrders
 
         return ['projects' => $projects->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'company_id' => $p->company_id, 'can_manage' => $this->manage($user, $p)])->all(),
             'partners'     => Partner::query()->where(fn ($q) => $q->whereIn('company_id', $ids)->orWhereNull('company_id'))->get(['id', 'name', 'company_id'])->toArray(),
-            'items'        => Product::query()->with('uom')->where(fn ($q) => $q->whereIn('company_id', $ids)->orWhereNull('company_id'))->where('enable_purchase', true)->get()->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'company_id' => $p->company_id, 'unit' => $p->uom?->name, 'price' => $p->getRawOriginal('price'), 'cost' => $p->getRawOriginal('cost')])->all(),
+            'uoms'         => UOM::query()->get(['id', 'name'])->toArray(),
+            'items'        => Product::query()->with('uom')->where(fn ($q) => $q->whereIn('company_id', $ids)->orWhereNull('company_id'))->where('enable_purchase', true)->get()->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'company_id' => $p->company_id, 'unit' => $p->uom?->name, 'uom_id' => $p->uom_id, 'price' => $p->getRawOriginal('price'), 'cost' => $p->getRawOriginal('cost')])->all(),
             'currencies'   => Currency::query()->get(['id', 'name'])->toArray()];
     }
 
@@ -137,6 +140,22 @@ class WorkOrders
             $lines = [];
             foreach ($data['lines'] as $line) {
                 abort_unless(isset($routes[$line['route_key']]), 422, 'Each item must belong to a route in this Work Order.');
+                if (empty($line['item_id'])) {
+                    abort_unless($user->can('create', Product::class), 403, 'Your role cannot register new Items.');
+                    $unit = UOM::findOrFail($line['new_item_uom_id'] ?? null);
+                    $name = trim($line['new_item_name'] ?? '');
+                    abort_if($name === '', 422, 'Enter an Item name.');
+                    $item = Product::query()->where('company_id', $company->id)->where('name', $name)->where('enable_purchase', true)->first();
+                    if ($item) {
+                        abort_unless($item->uom_id === $unit->id, 422, 'An Item with this name already uses a different unit. Select the existing Item.');
+                    } else {
+                        $category = Category::query()->orderBy('id')->first();
+                        abort_unless($category, 422, 'Configure an Item category before registering new Items.');
+                        $item = Product::create(['category_id' => $category->id, 'name' => $name, 'type' => 'service', 'company_id' => $company->id, 'creator_id' => $user->id, 'uom_id' => $unit->id, 'uom_po_id' => $unit->id, 'enable_purchase' => true, 'enable_sales' => true, 'price' => $line['maincon_rate'], 'cost' => $line['subcon_rate']]);
+                    }
+                    $line['item_id'] = $item->id;
+                }
+                unset($line['new_item_name'], $line['new_item_uom_id']);
                 $item = Product::query()->with('uom')->where(fn ($q) => $q->where('company_id', $company->id)->orWhereNull('company_id'))->where('enable_purchase', true)->findOrFail($line['item_id']);
                 $lines[] = [...$line, 'item_name' => $item->name, 'uom_id' => $item->uom_id, 'unit' => $item->uom?->name, 'quantity' => (string) $this->decimal($line['quantity'])->toScale(4), 'maincon_rate' => (string) $this->decimal($line['maincon_rate'])->toScale(4), 'subcon_rate' => (string) $this->decimal($line['subcon_rate'])->toScale(4)];
             }

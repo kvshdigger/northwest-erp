@@ -354,3 +354,25 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
 .hr-workflows h3{margin:24px 0 12px}.hr-workflows .actions{margin:16px 0}.hr-workflows .tablewrap{margin:14px 0}.hr-workflows .hr-detail{margin:20px 0}.hr-workflows ul{padding-left:22px}.hr-workflows li{margin:8px 0}
 
 .finance-line{border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:16px;margin:16px 0;min-width:0}.finance-line legend{padding:0 8px;font-weight:600}.finance-line .formgrid{margin-bottom:12px}.finance-logo{display:block;max-width:180px;max-height:90px;object-fit:contain;margin:12px 0}.finance-line select[multiple]{min-height:80px}
+
+/* Purchase order workspace: one horizontal row per item. */
+.po-editor-page { width:100%; min-width:0; padding:24px; box-sizing:border-box; }
+.po-editor-page [data-lines] { overflow-x:auto; }
+.po-editor-page .po-item-row { display:flex; align-items:end; gap:12px; min-width:1180px; border:0; border-bottom:1px solid #e2e5ed; border-radius:0; padding:16px 0; margin:0; }
+.po-item-row .formgrid { display:flex; flex:1; gap:12px; align-items:start; }
+.po-item-row .field { flex:1; min-width:100px; }
+.po-item-row .field:has([name=description]), .po-item-row .field:has([name=work_order_line_key]) { flex:2; min-width:180px; }
+.po-item-row .input { width:100%; box-sizing:border-box; }
+.po-item-row [data-remove] { flex:none; }
+@media(max-width:700px) { .po-editor-page { padding:12px; } }
+
+.po-table table { min-width:1100px; width:100%; border-collapse:collapse; }
+.po-table td { vertical-align:top; padding:10px; min-width:105px; }
+.po-table td:has([name=item_id]),.po-table td:has([name=work_order_line_key]),.po-table td:has([name=description]) { min-width:200px; }
+.po-table .field { font-size:0; gap:0; }
+.po-table .input { font-size:14px; width:100%; box-sizing:border-box; }
+.po-table-tools,.po-subtotal { text-align:right; margin:16px 0; }
+.po-column-choice { display:flex; gap:10px; padding:10px; }
+.po-table [hidden] { display:none!important; }
+
+.po-table [data-wo-column][hidden] { display:none!important; }

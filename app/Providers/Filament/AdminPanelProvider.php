@@ -14,11 +14,10 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup as FilamentNavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\View\PanelsRenderHook;
-use Illuminate\Support\HtmlString;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Table;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -26,6 +25,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
 use Webkul\Support\Enums\NavigationGroup;
@@ -42,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->theme(secure_asset('css/filament/admin/theme.css') . '?v=' . filemtime(public_path('css/filament/admin/theme.css')))
+            ->theme(asset('css/filament/admin/theme.css').'?v='.filemtime(public_path('css/filament/admin/theme.css')))
             ->renderHook(PanelsRenderHook::SIDEBAR_FOOTER, fn (): HtmlString => new HtmlString(
                 '<div class="px-4 py-2 text-xs text-gray-500">Role: <span class="font-semibold text-gray-700">'.e(Auth::user()?->getRoleNames()->first() ?? 'No role assigned').'</span></div>'
             ))
@@ -190,7 +190,7 @@ class AdminPanelProvider extends PanelProvider
 }
 </style>
 HTML
-))
+            ))
             ->login()
             ->favicon(asset('images/favicon.ico'))
             ->brandLogo(asset('images/logo.svg'))
