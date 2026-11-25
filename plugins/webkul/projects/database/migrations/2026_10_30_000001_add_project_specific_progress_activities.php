@@ -9,9 +9,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('daily_progress_reports', function (Blueprint $table): void {
-            $table->foreignId('project_id')->nullable()->after('id')->constrained('projects_projects')->nullOnDelete();
-            $table->index(['project_id', 'project_route', 'report_date'], 'daily_progress_project_route_date_idx');
+            if (! Schema::hasColumn('daily_progress_reports', 'project_id')) {
+                $table->foreignId('project_id')->nullable()->after('id')->constrained('projects_projects')->nullOnDelete();
+            }
+            if (! Schema::hasIndex('daily_progress_reports', 'daily_progress_project_route_date_idx')) {
+                $table->index(['project_id', 'project_route', 'report_date'], 'daily_progress_project_route_date_idx');
+            }
         });
+
+        if (Schema::hasTable('project_progress_activities')) {
+            return;
+        }
 
         Schema::create('project_progress_activities', function (Blueprint $table): void {
             $table->id();
