@@ -4,17 +4,25 @@ namespace App\Console\Commands;
 
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Webkul\Accounting\Models\Bill;
+use Webkul\Accounting\Models\Invoice;
+use Webkul\Accounting\Models\Payment;
 use Webkul\PluginManager\Package;
 use Webkul\PluginManager\PackageServiceProvider;
+use Webkul\Product\Models\Product;
+use Webkul\Purchase\Models\Partner;
+use Webkul\Purchase\Models\PurchaseOrder;
+use Webkul\Security\Models\User;
 
 class EnableV2Finance extends Command
 {
-    protected $signature = 'v2:enable-finance';
+    protected $signature = 'v2:enable-finance {--email= : Existing user to receive Finance view/create/update access}';
 
     protected $description = 'Install Finance schema and activate dependencies without running seeders or deleting records';
 
@@ -76,6 +84,25 @@ class EnableV2Finance extends Command
             })->get();
             $admin->givePermissionTo($permissions);
             $admin->givePermissionTo(Permission::findOrCreate('v2_finance_configure', 'web'));
+        }
+        if ($email = $this->option('email')) {
+            $user = User::where('email', $email)->where('is_active', true)->firstOrFail();
+            foreach (['purchase_purchase::order', 'purchase_vendor', 'accounting_invoice', 'accounting_bill', 'accounting_payment', 'product_product'] as $resource) {
+                foreach (['view_any', 'view', 'create', 'update'] as $action) {
+                    $user->givePermissionTo(Permission::findOrCreate($action.'_'.$resource, 'web'));
+                }
+            }
+            $user->givePermissionTo(Permission::findOrCreate('v2_finance_configure', 'web'));
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $user->refresh();
+            foreach ([PurchaseOrder::class, Invoice::class, Bill::class, Payment::class, Product::class, Partner::class] as $model) {
+                foreach (['viewAny', 'create'] as $ability) {
+                    if (! Gate::forUser($user)->allows($ability, $model)) {
+                        throw new \RuntimeException('Finance permission verification failed for '.$model.' '.$ability);
+                    }
+                }
+            }
+            $this->info('Requested user Finance permissions granted and policy checks passed. Company memberships unchanged.');
         }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         Package::refreshPluginCaches();
