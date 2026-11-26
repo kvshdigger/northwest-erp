@@ -2,8 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Services\NativeFinance;
+use App\Services\NativeHr;
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -19,6 +22,8 @@ use Webkul\Product\Models\Product;
 use Webkul\Purchase\Models\Partner;
 use Webkul\Purchase\Models\PurchaseOrder;
 use Webkul\Security\Models\User;
+use Webkul\Support\Models\Company;
+use Webkul\Support\Services\CompanyContext;
 
 class EnableV2Finance extends Command
 {
@@ -95,6 +100,22 @@ class EnableV2Finance extends Command
             $user->givePermissionTo(Permission::findOrCreate('v2_finance_configure', 'web'));
             app(PermissionRegistrar::class)->forgetCachedPermissions();
             $user->refresh();
+            Auth::login($user);
+            if (! $user->allowedCompanies()->exists() && $user->default_company_id) {
+                $company = Company::findOrFail($user->default_company_id);
+                $user->allowedCompanies()->syncWithoutDetaching([$company->id]);
+                $this->info('Restored missing company membership for the existing default company only.');
+            }
+            app()->forgetInstance(CompanyContext::class);
+            $companyIds = app(NativeHr::class)->companyIds($user);
+            if (! $companyIds) {
+                throw new \RuntimeException('No permitted active company is configured for the requested user.');
+            }
+            foreach (['purchase-orders', 'invoices', 'bills', 'payments', 'items'] as $kind) {
+                app(NativeFinance::class)->form($user, $kind, $companyIds[0]);
+                $this->info('Verified Finance form: '.$kind);
+            }
+
             foreach ([PurchaseOrder::class, Invoice::class, Bill::class, Payment::class, Product::class, Partner::class] as $model) {
                 foreach (['viewAny', 'create'] as $ability) {
                     if (! Gate::forUser($user)->allows($ability, $model)) {
