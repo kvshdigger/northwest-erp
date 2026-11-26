@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\FinanceConfiguration;
 use App\Services\NativeFinance;
 use App\Services\NativeHr;
 use BezhanSalleh\FilamentShield\Support\Utils;
@@ -27,7 +28,7 @@ use Webkul\Support\Services\CompanyContext;
 
 class EnableV2Finance extends Command
 {
-    protected $signature = 'v2:enable-finance {--email= : Existing user to receive Finance view/create/update access}';
+    protected $signature = 'v2:enable-finance {--email= : Existing user to receive Finance view/create/update access} {--company= : Company name to associate with this user}';
 
     protected $description = 'Install Finance schema and activate dependencies without running seeders or deleting records';
 
@@ -101,6 +102,27 @@ class EnableV2Finance extends Command
             app(PermissionRegistrar::class)->forgetCachedPermissions();
             $user->refresh();
             Auth::login($user);
+            if ($requestedCompany = $this->option('company')) {
+                $companies = Company::query()->get();
+                $matches = $companies->filter(function ($company) use ($requestedCompany) {
+                    $branding = FinanceConfiguration::where('company_id', $company->id)->first()?->settings;
+
+                    return str_contains(Str::lower($company->name), Str::lower($requestedCompany)) || str_contains(Str::lower($branding['display_name'] ?? ''), Str::lower($requestedCompany));
+                });
+                if ($matches->count() === 1) {
+                    $company = $matches->first();
+                } elseif ($matches->isEmpty() && $companies->count() === 1) {
+                    $company = $companies->first();
+                    $this->warn('Using the sole existing company; no company was created or renamed.');
+                } else {
+                    throw new \RuntimeException('Company selection is ambiguous; no membership was changed.');
+                }
+                $user->allowedCompanies()->syncWithoutDetaching([$company->id]);
+                $user->default_company_id = $company->id;
+                $user->save();
+                session()->put(CompanyContext::SESSION_KEY, [$company->id]);
+                $this->info('Assigned requested user to company: '.$company->name.' (ID '.$company->id.').');
+            }
             if (! $user->allowedCompanies()->exists() && $user->default_company_id) {
                 $company = Company::findOrFail($user->default_company_id);
                 $user->allowedCompanies()->syncWithoutDetaching([$company->id]);
