@@ -40,7 +40,7 @@ it('uses native finance actions and item terminology', function (): void {
     foreach ($catalog['sections'] as $section) {
         expect($section['native'])->toBeTrue()->and($section['url'])->toBeNull()->and($section['create_url'])->toBeNull();
     }
-    expect(collect($catalog['sections'])->pluck('title')->all())->toContain('Items', 'PO / Invoice configuration');
+    expect(collect($catalog['sections'])->pluck('title')->all())->toContain('Items', 'Document settings');
     $this->getJson($this->base.'purchase-orders/form')->assertOk()->assertJsonPath('can_create', true);
 });
 

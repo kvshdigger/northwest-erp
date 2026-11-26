@@ -4,6 +4,7 @@ use App\Http\Controllers\BusinessWorkspaceController;
 use App\Http\Controllers\HrWorkflowController;
 use App\Http\Controllers\NativeFinanceController;
 use App\Http\Controllers\NativeHrController;
+use App\Http\Controllers\VendorRegistrationController;
 use App\Http\Controllers\VendorWorkspaceController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,10 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    Route::post('vendor-registrations/{registration}/resend', [VendorRegistrationController::class, 'resend'])->whereNumber('registration');
+    Route::get('vendor-registrations', [VendorRegistrationController::class, 'pending']);
+    Route::post('vendor-registrations/invite', [VendorRegistrationController::class, 'invite']);
+    Route::post('vendor-registrations/{registration}/{decision}', [VendorRegistrationController::class, 'review'])->whereNumber('registration');
     Route::get('vendors', [VendorWorkspaceController::class, 'index']);
     Route::post('vendors', [VendorWorkspaceController::class, 'save']);
     Route::put('vendors/{record}', [VendorWorkspaceController::class, 'save'])->whereNumber('record');
