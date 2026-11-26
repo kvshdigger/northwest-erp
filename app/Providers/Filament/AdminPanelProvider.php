@@ -156,6 +156,15 @@ class AdminPanelProvider extends PanelProvider
     -webkit-text-fill-color: #172033 !important;
     opacity: 1 !important;
 }
+.fi-simple-page .fi-input-wrp { display:flex !important; align-items:center !important; overflow:hidden; }
+.fi-simple-page .fi-input-wrp-content-ctn { flex:1 1 0% !important; min-width:0 !important; width:100% !important; }
+.fi-simple-page .fi-input-wrp input:not([type="checkbox"]):not([type="radio"]) {
+    display:block !important; width:100% !important; min-width:0 !important;
+    height:2.9rem !important; box-sizing:border-box !important;
+    padding:.65rem .85rem !important; margin:0 !important;
+    border:0 !important; border-radius:0 !important; outline:none !important; box-shadow:none !important;
+    font:inherit;
+}
 .fi-simple-page input::placeholder {
     color: #98a2b3 !important;
     -webkit-text-fill-color: #98a2b3 !important;
