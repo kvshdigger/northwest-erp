@@ -87,8 +87,7 @@ class BusinessWorkspace
             $sections[] = ['key' => 'work-orders', 'title' => 'Work Orders & margins', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
         }
         if ($module === 'finance' && app(FinanceDocuments::class)->canConfigure($user)) {
-            $sections[] = ['key' => 'company-profile', 'title' => 'Company Profile', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
-            $sections[] = ['key' => 'configuration', 'title' => 'PO / Invoice configuration', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
+            $sections[] = ['key' => 'configuration', 'title' => 'Document settings', 'state' => 'available', 'native' => true, 'can_create' => false, 'url' => null, 'create_url' => null];
         }
 
         return ['scope' => 'company', 'sections' => $module === 'people' ? [...$sections, ...app(HrWorkflows::class)->catalog($user)] : $sections, 'planned' => $module === 'finance' ? [

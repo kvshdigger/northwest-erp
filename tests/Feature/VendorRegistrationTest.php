@@ -27,7 +27,7 @@ it('holds self-registration for review and approves exactly one vendor', functio
     $this->postJson($this->base.'/'.$r->id.'/approve')->assertOk();
     expect(Partner::where('name', 'New subcontractor')->count())->toBe(1);
     $this->postJson($this->base.'/'.$r->id.'/approve')->assertConflict();
-    $this->get($path)->assertNotFound();
+    $this->get($path)->assertGone();
 });
 it('rejects expired invitation links and invalid submissions', function () {
     $url = $this->postJson($this->base.'/invite', ['company_id' => $this->user->default_company_id])->assertOk()->json('url');
@@ -35,8 +35,25 @@ it('rejects expired invitation links and invalid submissions', function () {
     $this->postJson($path, [])->assertUnprocessable();
     $r = VendorRegistration::latest('id')->first();
     $r->update(['expires_at' => now()->subMinute()]);
-    $this->get($path)->assertNotFound();
+    $this->get($path)->assertOk()->assertSee('This link has expired');
 });
 it('rejects invitation creation outside permitted companies', function () {
     $this->postJson($this->base.'/invite', ['company_id' => 999999])->assertForbidden();
+});
+
+it('expires invitations after 24 hours and allows requesting a replacement without opening ERP access', function () {
+    $url = $this->postJson($this->base.'/invite', ['company_id'=>$this->user->default_company_id])->assertOk()->json('url');
+    $r = VendorRegistration::latest('id')->firstOrFail();
+    expect(now()->diffInHours($r->expires_at))->toBeGreaterThan(23)->toBeLessThanOrEqual(24);
+    $path = parse_url($url, PHP_URL_PATH);
+    $this->travel(25)->hours();
+    Auth::logout();
+    $this->get($path)->assertOk()->assertSee('Request link');
+    $this->post($path.'/request-link')->assertOk()->assertSee('request was sent');
+    expect($r->fresh()->state)->toBe('link_requested');
+    $this->actingAs($this->user);
+    $new = $this->postJson($this->base.'/'.$r->id.'/resend')->assertOk()->json('url');
+    expect($new)->not->toBe($url);
+    $this->get($path)->assertNotFound();
+    $this->get(parse_url($new, PHP_URL_PATH))->assertOk()->assertSee('Submit for review');
 });

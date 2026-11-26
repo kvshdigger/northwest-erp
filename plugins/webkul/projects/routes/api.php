@@ -32,6 +32,7 @@ Route::name('admin.api.v1.projects.')->prefix('admin/api/v1/projects')->middlewa
 Route::bind('progressProject', fn (string $value) => Project::withoutGlobalScope(OwnershipScope::class)->findOrFail($value));
 
 $progressRoutes = function (): void {
+    Route::post('vendor-registrations/{registration}/resend', [VendorRegistrationController::class, 'resend'])->whereNumber('registration');
     Route::get('vendor-registrations', [VendorRegistrationController::class, 'pending']);
     Route::post('vendor-registrations/invite', [VendorRegistrationController::class, 'invite']);
     Route::post('vendor-registrations/{registration}/{decision}', [VendorRegistrationController::class, 'review'])->whereNumber('registration');

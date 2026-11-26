@@ -17,26 +17,50 @@ class VendorRegistrationController extends Controller
         $id = $request->integer('company_id');
         abort_unless(in_array($id, app(NativeHr::class)->companyIds($request->user()), true), 403);
         $token = bin2hex(random_bytes(32));
-        $r = VendorRegistration::create(['company_id'=>$id, 'token_hash'=>hash('sha256', $token), 'expires_at'=>now()->addDays(14), 'creator_id'=>$request->user()->id]);
+        $r = VendorRegistration::create(['company_id'=>$id, 'token_hash'=>hash('sha256', $token), 'expires_at'=>now()->addHours(24), 'creator_id'=>$request->user()->id]);
 
         return response()->json(['url'=>url('/subcontractor-registration/'.$token), 'expires_at'=>$r->expires_at]);
+    }
+
+    public function requestLink(Request $request, string $token): mixed
+    {
+        (new VendorRegistration)->getConnection()->transaction(function () use ($token) {
+            $r = VendorRegistration::where('token_hash', hash('sha256', $token))->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($r->state, ['invited', 'link_requested'], true) && $r->expires_at->isPast(), 410);
+            $r->update(['state'=>'link_requested']);
+        });
+
+        return response()->view('vendors.registration', ['requested'=>true])->header('Cache-Control', 'no-store');
+    }
+
+    public function resend(Request $request, int $registration): mixed
+    {
+        Gate::authorize('create', Partner::class);
+
+        return (new VendorRegistration)->getConnection()->transaction(function () use ($request, $registration) {
+            $r = VendorRegistration::whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->lockForUpdate()->findOrFail($registration);
+            abort_unless(in_array($r->state, ['invited', 'link_requested'], true), 409);
+            $token = bin2hex(random_bytes(32));
+            $r->update(['token_hash'=>hash('sha256', $token), 'state'=>'invited', 'expires_at'=>now()->addHours(24)]);
+
+            return response()->json(['url'=>url('/subcontractor-registration/'.$token), 'expires_at'=>$r->expires_at]);
+        });
     }
 
     public function pending(Request $request): mixed
     {
         Gate::authorize('viewAny', Partner::class);
 
-        return response()->json(['rows'=>VendorRegistration::whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->whereIn('state', ['pending', 'approved', 'rejected'])->latest()->limit(100)->get()])->header('Cache-Control', 'private, no-store');
-    }
-
-    private function invitation(string $token): VendorRegistration
-    {
-        return VendorRegistration::where('token_hash', hash('sha256', $token))->where('expires_at', '>', now())->where('state', 'invited')->firstOrFail();
+        return response()->json(['rows'=>VendorRegistration::whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->whereIn('state', ['invited', 'link_requested', 'pending', 'approved', 'rejected'])->latest()->limit(100)->get()])->header('Cache-Control', 'private, no-store');
     }
 
     public function form(string $token): mixed
     {
-        $this->invitation($token);
+        $invitation = VendorRegistration::where('token_hash', hash('sha256', $token))->firstOrFail();
+        abort_unless(in_array($invitation->state, ['invited', 'link_requested'], true), 410);
+        if ($invitation->expires_at->isPast()) {
+            return response()->view('vendors.registration', ['token'=>$token, 'expired'=>true])->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer');
+        }
 
         return response()->view('vendors.registration', ['token'=>$token])->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')->header('X-Robots-Tag', 'noindex, nofollow');
     }

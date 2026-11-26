@@ -14,7 +14,7 @@
             host.innerHTML = '<p class="module-message" role="status">Loading your workspace…</p>';
             try {
                 const catalog = await this.api.request('modules/' + module);
-                this.states[module] = { catalog, section: catalog.sections.find(item => item.state === 'available')?.key || catalog.sections[0].key, page: 1, search: '', sequence: 0 };
+                this.states[module] = { catalog, section: (module === 'finance' && catalog.sections.some(item => item.key === 'work-orders' && item.state === 'available') ? 'work-orders' : catalog.sections.find(item => item.state === 'available')?.key) || catalog.sections[0].key, page: 1, search: '', sequence: 0 };
                 this.render(module);
                 await this.load(module);
             } catch (error) { host.innerHTML = '<p class="notice" role="alert">' + escape(error.message) + '</p><button class="btn" data-retry>Try again</button>'; host.querySelector('[data-retry]').onclick = () => this.open(module); }
@@ -22,10 +22,10 @@
         render(module) {
             const state = this.states[module], host = document.getElementById(module + 'Workspace');
             const { catalog } = state;
-            host.innerHTML = '<div class="module-intro"><span class="scope-badge">' + (state.section === 'self-service' ? 'Private' : 'Company-wide') + '</span><p>' + (state.section === 'self-service' ? 'Your linked employee profile and own records.' : 'Records for your permitted company selection. Access follows your Finance or HR role.') + '</p></div>'
-                + '<nav class="module-tabs" aria-label="' + (module === 'finance' ? 'Finance' : 'HR') + ' sections">' + catalog.sections.map(item => '<button class="btn ' + (item.key === state.section ? 'primary' : '') + '" data-section="' + item.key + '" aria-pressed="' + (item.key === state.section) + '">' + escape(item.title) + '</button>').join('') + '</nav>'
+            host.innerHTML = '<div class="module-intro"><span class="scope-badge">' + (state.section === 'self-service' ? 'Private' : 'Company-wide') + '</span><p>' + (state.section === 'self-service' ? 'Your linked employee profile and own records.' : module === 'finance' ? 'Start with a Work Order, register your subcontractor, then create a purchase order.' : 'Records for your permitted company selection. Access follows your HR role.') + '</p></div>'
+                + '<nav class="module-tabs" aria-label="' + (module === 'finance' ? 'Finance' : 'HR') + ' sections">' + (module === 'finance' ? [...catalog.sections].sort((a,b)=>['work-orders','purchase-orders','vendors','items','invoices','bills','payments','configuration'].indexOf(a.key)-['work-orders','purchase-orders','vendors','items','invoices','bills','payments','configuration'].indexOf(b.key)) : catalog.sections).map(item => '<button class="btn ' + (item.key === state.section ? 'primary' : '') + '" data-section="' + item.key + '" aria-pressed="' + (item.key === state.section) + '">' + escape(item.title) + '</button>').join('') + '</nav>'
                 + '<section class="panel"><div class="module-records"></div></section>'
-                + (catalog.planned.length ? '<section class="module-roadmap"><h2>' + (module === 'finance' ? 'Finance' : 'HR') + ' workflow roadmap</h2><p class="muted">Planned capabilities. These workflows are not available yet.</p><div class="module-capabilities">' + catalog.planned.map(item => '<article><span class="scope-badge planned">Planned</span><h3>' + escape(item.title) + '</h3><p>' + escape(item.description) + '</p></article>').join('') + '</div></section>' : '');
+                + (module !== 'finance' && catalog.planned.length ? '<section class="module-roadmap"><h2>' + (module === 'finance' ? 'Finance' : 'HR') + ' workflow roadmap</h2><p class="muted">Planned capabilities. These workflows are not available yet.</p><div class="module-capabilities">' + catalog.planned.map(item => '<article><span class="scope-badge planned">Planned</span><h3>' + escape(item.title) + '</h3><p>' + escape(item.description) + '</p></article>').join('') + '</div></section>' : '');
             host.querySelectorAll('[data-section]').forEach(button => { button.onclick = () => { state.section = button.dataset.section; state.page = 1; state.search = ''; this.render(module); this.load(module); }; });
         }
         async load(module) {
