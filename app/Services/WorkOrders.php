@@ -54,7 +54,7 @@ class WorkOrders
 
         return ['projects' => $projects->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'company_id' => $p->company_id, 'can_manage' => $this->manage($user, $p)])->all(),
             'partners'     => Partner::query()->where(fn ($q) => $q->whereIn('company_id', $ids)->orWhereNull('company_id'))->get(['id', 'name', 'company_id'])->toArray(),
-            'uoms'         => UOM::query()->get(['id', 'name'])->toArray(),
+            'uoms'         => UOM::query()->orderBy('name')->get(['id', 'name'])->toArray(),
             'items'        => Product::query()->with('uom')->where(fn ($q) => $q->whereIn('company_id', $ids)->orWhereNull('company_id'))->where('enable_purchase', true)->get()->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'company_id' => $p->company_id, 'unit' => $p->uom?->name, 'uom_id' => $p->uom_id, 'price' => $p->getRawOriginal('price'), 'cost' => $p->getRawOriginal('cost')])->all(),
             'currencies'   => Currency::query()->get(['id', 'name'])->toArray()];
     }
