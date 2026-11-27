@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\FinanceConfiguration;
+use App\Services\DefaultFinanceUnits;
 use App\Services\NativeFinance;
 use App\Services\NativeHr;
 use BezhanSalleh\FilamentShield\Support\Utils;
@@ -78,6 +79,8 @@ class EnableV2Finance extends Command
                 throw new \RuntimeException('Required table missing: '.$table);
             }
         }
+        app(DefaultFinanceUnits::class)->ensure();
+        $this->info('Standard Finance units available; existing units and conversions preserved.');
         if ($this->call('shield:generate', ['--all'=>true, '--option'=>'permissions', '--panel'=>'admin', '--no-interaction'=>true]) !== 0) {
             return self::FAILURE;
         }
