@@ -427,3 +427,11 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
 }
 
 .po-reference-page .modal-actions { position:static; bottom:auto; background:transparent; }
+
+/* Keep workspace navigation visible while the document scrolls. */
+.top { position:sticky; top:0; z-index:6; }
+.po-editor-page, .page { scroll-margin-top:100px; }
+@media(min-width:901px) {
+    .sidebar { position:sticky; top:0; align-self:flex-start; height:100vh; height:100dvh; min-height:0; overflow-y:auto; z-index:7; }
+    .sidebar > * { flex-shrink:0; }
+}
