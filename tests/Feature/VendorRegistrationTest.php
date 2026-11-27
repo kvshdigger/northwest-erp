@@ -2,7 +2,10 @@
 
 use App\Models\VendorRegistration;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\PermissionRegistrar;
 use Webkul\Purchase\Models\Partner;
+use Webkul\Security\Models\Role;
+use Webkul\Support\Models\Company;
 
 require_once __DIR__.'/../../plugins/webkul/support/tests/Helpers/SecurityHelper.php';
 require_once __DIR__.'/../../plugins/webkul/support/tests/Helpers/TestBootstrapHelper.php';
@@ -56,4 +59,24 @@ it('expires invitations after 24 hours and allows requesting a replacement witho
     expect($new)->not->toBe($url);
     $this->get($path)->assertNotFound();
     $this->get(parse_url($new, PHP_URL_PATH))->assertOk()->assertSee('Submit for review');
+});
+
+it('lets active administrators review company registrations without vendor creation permissions', function () {
+    $r = VendorRegistration::create(['creator_id'=>$this->user->id, 'company_id'=>$this->user->default_company_id, 'token_hash'=>hash('sha256', random_bytes(32)), 'expires_at'=>now()->addDay(), 'state'=>'pending', 'data'=>['name'=>'Admin reviewed subcon', 'account_type'=>'company', 'company_registry'=>'SSM-ADMIN', 'email'=>'admin-reviewed@example.test', 'contact_person'=>'Contact']]);
+    $this->user->syncPermissions([]);
+    $this->user->assignRole(Role::firstOrCreate(['name'=>'admin', 'guard_name'=>'web']));
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $this->user->unsetRelation('roles')->unsetRelation('permissions');
+    $this->getJson('/admin/v2/project-progress/api/vendors')->assertOk();
+    $this->getJson($this->base)->assertOk()->assertJsonPath('can_review', true);
+    $this->postJson($this->base.'/'.$r->id.'/approve')->assertOk();
+    expect($r->fresh()->reviewer_id)->toBe($this->user->id);
+});
+
+it('keeps administrator registration approval scoped to their companies', function () {
+    $company = Company::factory()->create();
+    $r = VendorRegistration::create(['creator_id'=>$this->user->id, 'company_id'=>$company->id, 'token_hash'=>hash('sha256', random_bytes(32)), 'expires_at'=>now()->addDay(), 'state'=>'pending']);
+    $this->user->assignRole(Role::firstOrCreate(['name'=>'admin', 'guard_name'=>'web']));
+    $this->postJson($this->base.'/'.$r->id.'/approve')->assertNotFound();
+    expect($r->fresh()->state)->toBe('pending');
 });

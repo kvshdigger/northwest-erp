@@ -79,7 +79,7 @@ class BusinessWorkspace
         if ($module === 'finance' && Package::isPluginInstalled('purchases')) {
             $vendor = Partner::class;
             $resource = VendorResource::class;
-            $allowed = $user->can('viewAny', $vendor);
+            $allowed = app(VendorRegistrationAccess::class)->view($user);
             $sections[] = ['key' => 'vendors', 'title' => 'Vendors & subcontractors', 'state' => $allowed ? 'available' : 'restricted', 'native' => true, 'can_create' => $allowed && $user->can('create', $vendor), 'url' => null, 'create_url' => null, 'description' => 'Register vendors and subcontractors for purchase orders.'];
         }
 

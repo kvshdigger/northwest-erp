@@ -381,3 +381,49 @@ input[type="checkbox"] { accent-color: var(--accent); min-height: 0; width: 14px
 
 #financeWorkspace .module-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 12px; }
 #financeWorkspace .module-tabs .btn { flex-shrink: 0; white-space: nowrap; }
+
+/* Purchase order editor: compact document form and one editable Item per row. */
+.po-reference-page { padding:24px 32px; max-width:none; background:#f5f5f6; }
+.po-reference-page>.heading { margin-bottom:20px; }
+.po-reference-page>.heading h2 { font-size:24px; font-weight:650; }
+.po-reference-page .po-status-bar { display:flex; justify-content:flex-end; margin:0 0 16px; }
+.po-reference-page .po-card { background:#fff; border:1px solid #e1e3e8; border-radius:10px; margin-bottom:20px; overflow:visible; }
+.po-reference-page .po-card-title { padding:16px 20px; border-bottom:1px solid #e1e3e8; margin:0; font-size:17px; }
+.po-reference-page .po-general-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding:20px; }
+.po-reference-page .po-general-grid>div { display:grid; align-content:start; gap:16px; }
+.po-reference-page .field { color:#30343b; font-size:13px; gap:6px; }
+.po-reference-page .input { min-height:38px; padding:8px 12px; border-radius:7px; border-color:#dedfe4; background:#fff; }
+.po-reference-page .po-detail-tabs { display:flex; gap:4px; padding:5px 8px; border-bottom:1px solid #e1e3e8; }
+.po-reference-page .po-detail-tabs .btn { border:0; box-shadow:none; color:#747781; border-radius:7px; background:transparent; font-size:13px; padding:12px; }
+.po-reference-page .po-detail-tabs [aria-selected=true] { color:#2563eb; background:#f8f9fb; }
+.po-reference-page [data-po-pane] { padding:20px; }
+.po-reference-page [data-po-pane][hidden] { display:none; }
+.po-reference-page .po-table-tools { margin:0 0 8px; }
+.po-reference-page .po-table-tools .btn { padding:6px 12px; font-size:12px; }
+.po-reference-page .po-table { border:1px solid #dedfe4; border-radius:8px; }
+.po-reference-page .po-table table { min-width:780px; table-layout:fixed; }
+.po-reference-page .po-table th { padding:10px 12px; color:#747781; background:#fafafa; font-size:11px; text-transform:uppercase; border-right:1px solid #e4e5e9; }
+.po-reference-page .po-table td { padding:0; min-width:0; border-right:1px solid #e4e5e9; vertical-align:middle; }
+.po-reference-page .po-table td .field { font-size:0; gap:0; }
+.po-reference-page .po-table .input { border:0; border-radius:0; min-height:42px; font-size:13px; padding:10px 12px; width:100%; }
+.po-reference-page .po-table .input:focus { outline:2px solid #93b4ff; outline-offset:-2px; }
+.po-reference-page .po-table output { display:block; padding:12px; font-size:13px; }
+.po-reference-page .po-table [data-po-column=item_id] { width:27%; }
+.po-reference-page .po-table td .btn { margin:4px; padding:6px 8px; color:#b91c1c; font-size:11px; }
+.po-reference-page .po-add-item { display:block; margin:12px auto 20px; font-size:12px; padding:7px 12px; }
+.po-reference-page .po-totals { margin:24px 0 8px auto; width:min(360px,100%); }
+.po-reference-page .po-totals p { display:flex; justify-content:space-between; gap:20px; padding:12px 0; border-bottom:1px solid #e1e3e8; text-align:left; margin:0; font-size:15px; }
+.po-reference-page .po-totals strong { text-align:right; }
+.po-reference-page .modal-actions { justify-content:flex-start; border-top:0; padding:0; }
+.po-reference-page .btn.primary { background:#2563eb; border-color:#2563eb; }
+.po-reference-page .notice { margin:12px 0; }
+@media(max-width:800px) {
+ .po-reference-page { padding:16px; }
+ .po-reference-page .po-general-grid { grid-template-columns:1fr; gap:16px; padding:16px; }
+ .po-reference-page [data-po-pane] { padding:12px; }
+ .po-reference-page .po-detail-tabs { overflow-x:auto; }
+ .po-reference-page .po-detail-tabs .btn { white-space:nowrap; }
+ .po-reference-page .modal-actions { flex-wrap:wrap; }
+}
+
+.po-reference-page .modal-actions { position:static; bottom:auto; background:transparent; }
