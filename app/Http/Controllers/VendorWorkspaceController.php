@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VendorWorkspaceRequest;
 use App\Services\NativeHr;
+use App\Services\VendorRegistrationAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,7 +15,7 @@ class VendorWorkspaceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', Partner::class);
+        abort_unless(app(VendorRegistrationAccess::class)->view($request->user()), 403);
         $ids = app(NativeHr::class)->companyIds($request->user());
 
         return response()->json(['companies'=>Company::whereIn('id', $ids)->get(['id', 'name']), 'rows'=>Partner::where(fn ($q) =>$q->whereIn('company_id', $ids)->orWhereNull('company_id'))->where('supplier_rank', '>', 0)->orderBy('name')->limit(200)->get(), 'can_create'=>Gate::allows('create', Partner::class)]);

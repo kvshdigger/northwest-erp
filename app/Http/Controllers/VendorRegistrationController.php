@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PublicVendorRegistrationRequest;
 use App\Models\VendorRegistration;
 use App\Services\NativeHr;
+use App\Services\VendorRegistrationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Webkul\Purchase\Models\Partner;
@@ -49,9 +50,9 @@ class VendorRegistrationController extends Controller
 
     public function pending(Request $request): mixed
     {
-        Gate::authorize('viewAny', Partner::class);
+        abort_unless(app(VendorRegistrationAccess::class)->view($request->user()), 403);
 
-        return response()->json(['rows'=>VendorRegistration::whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->whereIn('state', ['invited', 'link_requested', 'pending', 'approved', 'rejected'])->latest()->limit(100)->get()])->header('Cache-Control', 'private, no-store');
+        return response()->json(['can_review'=>app(VendorRegistrationAccess::class)->review($request->user()), 'rows'=>VendorRegistration::whereIn('company_id', app(NativeHr::class)->companyIds($request->user()))->whereIn('state', ['invited', 'link_requested', 'pending', 'approved', 'rejected'])->latest()->limit(100)->get()])->header('Cache-Control', 'private, no-store');
     }
 
     public function form(string $token): mixed
@@ -78,7 +79,7 @@ class VendorRegistrationController extends Controller
 
     public function review(Request $request, int $registration, string $decision): mixed
     {
-        Gate::authorize('create', Partner::class);
+        abort_unless(app(VendorRegistrationAccess::class)->review($request->user()), 403);
         abort_unless(in_array($decision, ['approve', 'reject'], true), 404);
 
         return (new VendorRegistration)->getConnection()->transaction(function () use ($request, $registration, $decision) {
