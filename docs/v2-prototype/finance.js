@@ -143,8 +143,8 @@
                     const status=document.createElement('div');status.className='po-status-bar';status.innerHTML='<span class="scope-badge">'+esc(row?.state==='purchase'?'Confirmed':row?.state==='cancel'?'Cancelled':'Draft')+'</span>';
                     form.prepend(status,general,details);
                     details.querySelectorAll('[data-po-tab]').forEach(button=>button.onclick=()=>{details.querySelectorAll('[data-po-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));details.querySelectorAll('[data-po-pane]').forEach(p=>p.hidden=p.dataset.poPane!==button.dataset.poTab);});
-                    const submit=form.querySelector('[type=submit]');submit.textContent=row?'Save changes':'Create';
-                    if(!row)submit.insertAdjacentHTML('afterend','<button class="btn" type="submit" data-create-another>Create & create another</button>');
+                    const submit=form.querySelector('[type=submit]');submit.textContent=row?.state==='purchase'?'Save confirmed PO':'Save draft';
+                    if(!row)submit.insertAdjacentHTML('afterend','<button class="btn" type="submit" data-create-another>Save draft &amp; create another</button>');
                     const actions=form.querySelector('.modal-actions');actions.appendChild(actions.querySelector('[data-cancel]'));
                     form.elements.currency_id.addEventListener('change',updateAmounts);
                     updateAmounts();
